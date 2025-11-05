@@ -1,6 +1,4 @@
-use szproduct::GetVersionRequest;
-use szproduct::sz_product_client::SzProductClient;
-use szproduct::
+use senzing_sdk_rust_grpc::get_version;
 
 pub mod szproduct {
     tonic::include_proto!("szproduct");

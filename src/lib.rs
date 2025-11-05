@@ -10,7 +10,7 @@ pub fn add(left: u64, right: u64) -> u64 {
 }
 
 #[tokio::main]
-async fn get_version() -> Result<String, Box<dyn std::error::Error>> {
+pub async fn get_version() -> Result<String, Box<dyn std::error::Error>> {
     let mut client = SzProductClient::connect("http://0.0.0.0:8261").await?;
     let request = tonic::Request::new(GetVersionRequest {});
     let response = client.get_version(request).await?;
