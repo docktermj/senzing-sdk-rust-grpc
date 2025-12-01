@@ -5,6 +5,7 @@
         "DYLD",
         "GOBIN",
         "GOPATH",
+        "nocapture",
         "oneline",
         "OSARCH",
         "osdetect",
@@ -13,6 +14,10 @@
         "protos",
         "senzing",
         "serde",
+        "szconfig",
+        "szconfigmanager",
+        "szdiagnostic",
+        "szengine",
         "szproduct",
         "toplevel"
     ]
