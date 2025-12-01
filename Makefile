@@ -80,13 +80,6 @@ setup:
 		senzing/serve-grpc
 	$(info senzing/serve-grpc running in background.)
 
-.PHONY: setup-mutual-tls
-setup-mutual-tls: setup-mutual-tls-osarch-specific
-
-
-.PHONY: setup-server-side-tls
-setup-server-side-tls: setup-server-side-tls-osarch-specific
-
 # -----------------------------------------------------------------------------
 # Lint
 # -----------------------------------------------------------------------------
@@ -116,19 +109,8 @@ run:
 # -----------------------------------------------------------------------------
 
 .PHONY: test
-test: test-osarch-specific
-
-
-.PHONY: test-mutual-tls
-test-mutual-tls: test-mutual-tls-osarch-specific
-
-
-.PHONY: test-mutual-tls-encrypted-key
-test-mutual-tls-encrypted-key: test-mutual-tls-encrypted-key-osarch-specific
-
-
-.PHONY: test-server-side-tls
-test-server-side-tls: test-server-side-tls-osarch-specific
+test:
+	cargo test
 
 # -----------------------------------------------------------------------------
 # Coverage
@@ -140,7 +122,6 @@ coverage:
 
 .PHONY: check-coverage
 check-coverage:
-
 
 # -----------------------------------------------------------------------------
 # Documentation
@@ -186,7 +167,3 @@ bearer:
 .PHONY: cspell
 cspell:
 	@cspell lint --dot .
-
-
-
-
