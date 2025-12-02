@@ -4,10 +4,10 @@ pub mod szproduct_y {
 
     tonic::include_proto!("szproduct");
 
-    use sz_product_client::SzProductClient;
-    use tonic::transport::Channel;
     use std::sync::OnceLock;
+    use sz_product_client::SzProductClient;
     use tokio::runtime::Runtime;
+    use tonic::transport::Channel;
 
     // Global runtime that persists for the lifetime of the program
     static RUNTIME: OnceLock<Runtime> = OnceLock::new();
@@ -46,16 +46,13 @@ mod tests {
     use tonic::transport::Channel;
 
     fn is_valid_json(s: String) -> bool {
-        println!(">>>>>> is_valid_json={:?}", s);
-        serde_json::from_str::<serde_json::Value>(&s).is_ok()
+        let result = serde_json::from_str::<serde_json::Value>(&s).is_ok();
+        println!(">>>>>> is_valid_json:{:?}; JSON: {:?}", result, s);
+        result
     }
 
     async fn get_grpc_client_async()
     -> Result<SzProductClient<Channel>, Box<dyn std::error::Error + Send>> {
-        // match SzProductClient::connect("http://0.0.0.0:8261").await {
-        //     Ok(client) => client,
-        //     Err(_) => panic!("Cannot get gRPC channel"),
-        // }
         let result = SzProductClient::connect("http://0.0.0.0:8261").await;
         Ok(result.unwrap())
     }
@@ -63,63 +60,19 @@ mod tests {
     pub fn get_grpc_client() -> SzProductClient<Channel> {
         // Use the same global runtime
         let rt = super::szproduct_y::get_runtime();
-        rt.block_on(async move { get_grpc_client_async().await }).unwrap()
+        rt.block_on(async move { get_grpc_client_async().await })
+            .unwrap()
     }
 
-    // fn get_grpc_client() -> SzProductClient<Channel> {
-    //     let thingee = get_grpc_client_async();
-
-    //     let bob = thingee.
-    //     match thingee {
-    //         Ok(xyzzy) => xyzzy,
-    //     }
-
-    //     let handle = std::thread::spawn(move || {
-    //         let rt = tokio::runtime::Builder::new_current_thread()
-    //             .enable_all()
-    //             .build()
-    //             .unwrap();
-    //         rt.block_on(async move { SzProductClient::connect("http://0.0.0.0:8261").await })
-    //     });
-
-    //     match handle.join().unwrap() {
-    //         Ok(client) => client,
-    //         Err(_) => panic!("Cannot get gRPC channel"),
-    //     }
-    // }
-
-    // fn get_grpc_client() -> SzProductClient<Channel> {
-    //     let thingee = get_grpc_client_async();
-
-    //     let bob = thingee.
-    //     match thingee {
-    //         Ok(xyzzy) => xyzzy,
-    //     }
-
-    //     let handle = std::thread::spawn(move || {
-    //         let rt = tokio::runtime::Builder::new_current_thread()
-    //             .enable_all()
-    //             .build()
-    //             .unwrap();
-    //         rt.block_on(async move { SzProductClient::connect("http://0.0.0.0:8261").await })
-    //     });
-
-    //     match handle.join().unwrap() {
-    //         Ok(client) => client,
-    //         Err(_) => panic!("Cannot get gRPC channel"),
-    //     }
-    // }
+    pub fn get_szproduct() -> super::szproduct_y::SzProduct {
+        super::szproduct_y::SzProduct {
+            grpc_client: get_grpc_client(),
+        }
+    }
 
     #[test]
     fn test_get_version() {
-        let client = get_grpc_client();
-        let mut szproduct = super::szproduct_y::SzProduct {
-            grpc_client: client,
-        };
-
-        let result = szproduct.get_version();
-        println!(">>>>>> result={:?}", result);
-
+        let result = get_szproduct().get_version();
         assert!(result.is_ok_and(is_valid_json));
     }
 }
