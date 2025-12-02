@@ -9,7 +9,6 @@ pub fn add(left: u64, right: u64) -> u64 {
     left + right
 }
 
-#[tokio::main]
 pub async fn check_repository_performance() -> Result<String, Box<dyn std::error::Error>> {
     let mut client = SzDiagnosticClient::connect("http://0.0.0.0:8261").await?;
     let request = tonic::Request::new(CheckRepositoryPerformanceRequest { seconds_to_run: 5 });
