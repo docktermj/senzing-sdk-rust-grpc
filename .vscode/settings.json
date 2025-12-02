@@ -19,6 +19,7 @@
         "szdiagnostic",
         "szengine",
         "szproduct",
-        "toplevel"
+        "toplevel",
+        "xyzzy"
     ]
 }
