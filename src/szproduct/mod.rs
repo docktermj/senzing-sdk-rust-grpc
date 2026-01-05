@@ -1,5 +1,8 @@
 // use serde_json::Value;
 
+#[cfg(test)]
+mod tests;
+
 pub mod szproduct_y {
 
     tonic::include_proto!("szproduct");
@@ -26,6 +29,10 @@ pub mod szproduct_y {
     }
 
     impl SzProduct {
+        pub fn destroy(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+            Ok(())
+        }
+
         pub fn get_license(&mut self) -> Result<String, Box<dyn std::error::Error>> {
             let mut client = self.grpc_client.clone();
             let rt = get_runtime();
@@ -49,50 +56,5 @@ pub mod szproduct_y {
 
             Ok(response.get_ref().clone().result)
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::szproduct_y::sz_product_client::SzProductClient;
-    use tonic::transport::Channel;
-
-    fn is_valid_json(s: String) -> bool {
-        let result = serde_json::from_str::<serde_json::Value>(&s).is_ok();
-        println!(">>>>>> is_valid_json:{:?}; JSON: {:?}", result, s);
-        result
-    }
-
-    async fn get_grpc_client_async()
-    -> Result<SzProductClient<Channel>, Box<dyn std::error::Error + Send>> {
-        let result = SzProductClient::connect("http://0.0.0.0:8261").await;
-        Ok(result.unwrap())
-    }
-
-    pub fn get_grpc_client() -> SzProductClient<Channel> {
-        // Use the same global runtime
-        let rt = super::szproduct_y::get_runtime();
-        rt.block_on(async move { get_grpc_client_async().await })
-            .unwrap()
-    }
-
-    pub fn get_szproduct() -> super::szproduct_y::SzProduct {
-        super::szproduct_y::SzProduct {
-            grpc_client: get_grpc_client(),
-        }
-    }
-
-    #[test]
-    fn test_get_license() {
-        let result = get_szproduct().get_license();
-        dbg!(&result);
-        assert!(result.is_ok_and(is_valid_json));
-    }
-
-    #[test]
-    fn test_get_version() {
-        let result = get_szproduct().get_version();
-        dbg!(&result);
-        assert!(result.is_ok_and(is_valid_json));
     }
 }
