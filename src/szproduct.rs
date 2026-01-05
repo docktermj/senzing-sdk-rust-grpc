@@ -26,6 +26,18 @@ pub mod szproduct_y {
     }
 
     impl SzProduct {
+        pub fn get_license(&mut self) -> Result<String, Box<dyn std::error::Error>> {
+            let mut client = self.grpc_client.clone();
+            let rt = get_runtime();
+
+            let response = rt.block_on(async move {
+                let request = tonic::Request::new(GetLicenseRequest {});
+                client.get_license(request).await
+            })?;
+
+            Ok(response.get_ref().clone().result)
+        }
+
         pub fn get_version(&mut self) -> Result<String, Box<dyn std::error::Error>> {
             let mut client = self.grpc_client.clone();
             let rt = get_runtime();
@@ -71,8 +83,16 @@ mod tests {
     }
 
     #[test]
+    fn test_get_license() {
+        let result = get_szproduct().get_license();
+        dbg!(&result);
+        assert!(result.is_ok_and(is_valid_json));
+    }
+
+    #[test]
     fn test_get_version() {
         let result = get_szproduct().get_version();
+        dbg!(&result);
         assert!(result.is_ok_and(is_valid_json));
     }
 }

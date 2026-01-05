@@ -79,6 +79,7 @@ setup:
 		--rm \
 		senzing/serve-grpc
 	$(info senzing/serve-grpc running in background.)
+	sleep 1
 
 # -----------------------------------------------------------------------------
 # Lint
