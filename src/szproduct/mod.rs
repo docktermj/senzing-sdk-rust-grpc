@@ -25,10 +25,14 @@ pub mod szproduct_y {
     }
 
     pub struct SzProduct {
-        pub grpc_client: SzProductClient<Channel>,
+        grpc_client: SzProductClient<Channel>,
     }
 
     impl SzProduct {
+        pub fn new(grpc_client: SzProductClient<Channel>) -> Self {
+            Self { grpc_client }
+        }
+
         pub fn destroy(&mut self) -> Result<(), Box<dyn std::error::Error>> {
             Ok(())
         }

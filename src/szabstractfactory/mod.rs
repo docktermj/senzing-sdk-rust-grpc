@@ -22,22 +22,33 @@ pub mod szabstractfactory_y {
         })
     }
 
-    pub struct SzAbstractFactory {
+    // For explanation of this technique, view https://www.youtube.com/watch?v=_ccDqRTx-JU
+
+    pub struct Uninitialized;
+    pub struct Initialized;
+
+    pub struct SzAbstractFactory<State = Uninitialized> {
         grpc_url: String,
+        state: std::marker::PhantomData<State>,
     }
 
-    impl SzAbstractFactory {
-        pub fn new(grpc_url: String) -> Self {
-            SzAbstractFactory { grpc_url }
+    impl SzAbstractFactory<Uninitialized> {
+        pub fn new(grpc_url: String) -> SzAbstractFactory<Initialized> {
+            SzAbstractFactory {
+                grpc_url: grpc_url,
+                state: std::marker::PhantomData::<Initialized>,
+            }
         }
+    }
 
+    impl SzAbstractFactory<Initialized> {
         pub fn create_product(&self) -> Result<szproduct_y::SzProduct, Box<dyn std::error::Error>> {
             let url = self.grpc_url.clone();
             let rt = get_runtime();
 
             let grpc_client = rt.block_on(async move { SzProductClient::connect(url).await })?;
 
-            Ok(szproduct_y::SzProduct { grpc_client })
+            Ok(szproduct_y::SzProduct::new(grpc_client))
         }
 
         pub fn create_diagnostic(
@@ -49,6 +60,28 @@ pub mod szabstractfactory_y {
             let grpc_client = rt.block_on(async move { SzDiagnosticClient::connect(url).await })?;
 
             Ok(szdiagnostic_y::SzDiagnostic { grpc_client })
+        }
+
+        pub fn destroy() -> SzAbstractFactory<Uninitialized> {
+            SzAbstractFactory {
+                grpc_url: String::from(""),
+                state: std::marker::PhantomData::<Uninitialized>,
+            }
+        }
+    }
+
+    impl<State> SzAbstractFactory<State> {
+        pub fn xx(grpc_url: String) -> SzAbstractFactory<Initialized> {
+            SzAbstractFactory {
+                grpc_url: grpc_url,
+                state: std::marker::PhantomData::<Initialized>,
+            }
+        }
+    }
+
+    impl SzAbstractFactory {
+        pub fn new_from_url(grpc_url: String) -> SzAbstractFactory<Initialized> {
+            SzAbstractFactory::new(grpc_url)
         }
     }
 }

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod test {
-    use crate::szabstractfactory::szabstractfactory_y;
+    use crate::szabstractfactory::szabstractfactory_y::{self, Initialized};
     use crate::szdiagnostic::szdiagnostic_y;
     use crate::szproduct::szproduct_y;
 
@@ -11,7 +11,8 @@ mod test {
     #[test]
     fn test_create_product() {
         let factory = get_szabstractfactory();
-        let result: Result<szproduct_y::SzProduct, Box<dyn std::error::Error>> = factory.create_product();
+        let result: Result<szproduct_y::SzProduct, Box<dyn std::error::Error>> =
+            factory.create_product();
         assert!(result.is_ok());
 
         if let Ok(mut product) = result {
@@ -23,7 +24,9 @@ mod test {
     #[test]
     fn test_create_diagnostic() {
         let factory = get_szabstractfactory();
-        let result: Result<szdiagnostic_y::SzDiagnostic, Box<dyn std::error::Error>> = factory.create_diagnostic();
+
+        let result: Result<szdiagnostic_y::SzDiagnostic, Box<dyn std::error::Error>> =
+            factory.create_diagnostic();
         assert!(result.is_ok());
 
         if let Ok(mut diagnostic) = result {
@@ -50,7 +53,9 @@ mod test {
     #[test]
     fn test_factory_creates_working_diagnostic() {
         let factory = get_szabstractfactory();
-        let mut diagnostic = factory.create_diagnostic().expect("Failed to create diagnostic");
+        let mut diagnostic = factory
+            .create_diagnostic()
+            .expect("Failed to create diagnostic");
 
         let repo_info_result = diagnostic.get_repository_info();
         assert!(repo_info_result.is_ok_and(is_valid_json));
@@ -86,7 +91,12 @@ mod test {
         result
     }
 
-    fn get_szabstractfactory() -> szabstractfactory_y::SzAbstractFactory {
-        szabstractfactory_y::SzAbstractFactory::new("http://0.0.0.0:8261".to_string())
+    fn get_szabstractfactory() -> szabstractfactory_y::SzAbstractFactory<Initialized> {
+        szabstractfactory_y::SzAbstractFactory::new_from_url("http://0.0.0.0:8261".to_string())
     }
+
+    // fn get_szabstractfactoryX() -> szabstractfactory_y::SzAbstractFactory {
+    //     let bob = szabstractfactory_y::SzAbstractFactory::create_product(&self);
+    //     bob
+    // }
 }

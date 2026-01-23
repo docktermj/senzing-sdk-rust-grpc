@@ -53,8 +53,6 @@ mod test {
     }
 
     pub fn get_szproduct() -> super::szproduct_y::SzProduct {
-        super::szproduct_y::SzProduct {
-            grpc_client: get_grpc_client(),
-        }
+        super::szproduct_y::SzProduct::new(get_grpc_client())
     }
 }
