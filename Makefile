@@ -59,6 +59,7 @@ hello-world: hello-world-osarch-specific
 .PHONY: dependencies-for-development
 dependencies-for-development: dependencies-for-development-osarch-specific
 	@sudo npm install -g cspell@latest || true
+	@rustup update
 
 
 .PHONY: dependencies
@@ -79,7 +80,8 @@ setup:
 		--rm \
 		senzing/serve-grpc
 	$(info senzing/serve-grpc running in background.)
-	sleep 1
+	$(info Sleeping to allow grpc server to come up.)
+	sleep 3
 
 # -----------------------------------------------------------------------------
 # Lint

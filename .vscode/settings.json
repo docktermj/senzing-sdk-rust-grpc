@@ -12,6 +12,7 @@
         "OSTYPE",
         "prost",
         "protos",
+        "rustup",
         "senzing",
         "serde",
         "szconfig",
@@ -22,5 +23,6 @@
         "thingee",
         "toplevel",
         "xyzzy"
-    ]
+    ],
+    "makefile.configureOnOpen": false
 }
