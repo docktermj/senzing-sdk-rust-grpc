@@ -49,5 +49,63 @@ pub mod szdiagnostic_y {
 
             Ok(response.get_ref().clone().result)
         }
+
+        pub fn get_feature(
+            &mut self,
+            feature_id: i64,
+        ) -> Result<String, Box<dyn std::error::Error>> {
+            let mut client = self.grpc_client.clone();
+            let rt = get_runtime();
+
+            let response = rt.block_on(async move {
+                let request = tonic::Request::new(GetFeatureRequest {
+                    feature_id: feature_id,
+                });
+                client.get_feature(request).await
+            })?;
+
+            Ok(response.get_ref().clone().result)
+        }
+
+        pub fn get_repository_info(&mut self) -> Result<String, Box<dyn std::error::Error>> {
+            let mut client = self.grpc_client.clone();
+            let rt = get_runtime();
+
+            let response = rt.block_on(async move {
+                let request = tonic::Request::new(GetRepositoryInfoRequest {});
+                client.get_repository_info(request).await
+            })?;
+
+            Ok(response.get_ref().clone().result)
+        }
+
+        pub fn purge_repository(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+            let mut client = self.grpc_client.clone();
+            let rt = get_runtime();
+
+            rt.block_on(async move {
+                let request = tonic::Request::new(PurgeRepositoryRequest {});
+                client.purge_repository(request).await
+            })?;
+
+            Ok(())
+        }
+
+        pub fn reinitialize(
+            &mut self,
+            config_id: i64,
+        ) -> Result<(), Box<dyn std::error::Error>> {
+            let mut client = self.grpc_client.clone();
+            let rt = get_runtime();
+
+            rt.block_on(async move {
+                let request = tonic::Request::new(ReinitializeRequest {
+                    config_id: config_id,
+                });
+                client.reinitialize(request).await
+            })?;
+
+            Ok(())
+        }
     }
 }

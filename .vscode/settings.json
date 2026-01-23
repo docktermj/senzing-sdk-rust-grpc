@@ -15,6 +15,7 @@
         "rustup",
         "senzing",
         "serde",
+        "szabstractfactory",
         "szconfig",
         "szconfigmanager",
         "szdiagnostic",

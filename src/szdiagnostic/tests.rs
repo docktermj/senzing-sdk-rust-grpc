@@ -23,6 +23,30 @@ mod test {
         assert!(result.is_ok_and(is_valid_json));
     }
 
+    // #[test]
+    // fn test_get_feature() {
+    //     let result = get_szdiagnostic().get_feature(1);
+    //     assert!(result.is_ok_and(is_valid_json));
+    // }
+
+    #[test]
+    fn test_get_repository_info() {
+        let result = get_szdiagnostic().get_repository_info();
+        assert!(result.is_ok_and(is_valid_json));
+    }
+
+    #[test]
+    fn test_purge_repository() {
+        let result = get_szdiagnostic().purge_repository();
+        assert!(result.is_ok());
+    }
+
+    // #[test]
+    // fn test_reinitialize() {
+    //     let result = get_szdiagnostic().reinitialize(1);
+    //     assert!(result.is_ok());
+    // }
+
     // ------------------------------------------------------------------------
     // Test helper functions
     // ------------------------------------------------------------------------
