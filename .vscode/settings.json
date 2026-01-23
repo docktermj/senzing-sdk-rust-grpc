@@ -1,0 +1,28 @@
+{
+    "cSpell.words": [
+        "alnum",
+        "coleifer",
+        "DYLD",
+        "GOBIN",
+        "GOPATH",
+        "nocapture",
+        "oneline",
+        "OSARCH",
+        "osdetect",
+        "OSTYPE",
+        "prost",
+        "protos",
+        "rustup",
+        "senzing",
+        "serde",
+        "szconfig",
+        "szconfigmanager",
+        "szdiagnostic",
+        "szengine",
+        "szproduct",
+        "thingee",
+        "toplevel",
+        "xyzzy"
+    ],
+    "makefile.configureOnOpen": false
+}
