@@ -4,7 +4,9 @@ use super::szdiagnostic_y;
 
 #[cfg(test)]
 mod test {
+
     use super::szdiagnostic_y::sz_diagnostic_client::SzDiagnosticClient;
+    use crate::helper::create_grpc_channel;
     use tonic::transport::Channel;
 
     // ------------------------------------------------------------------------
@@ -57,17 +59,11 @@ mod test {
         result
     }
 
-    async fn get_grpc_client_async()
-    -> Result<SzDiagnosticClient<Channel>, Box<dyn std::error::Error + Send>> {
-        let result = SzDiagnosticClient::connect("http://0.0.0.0:8261").await;
-        Ok(result.unwrap())
-    }
-
     pub fn get_grpc_client() -> SzDiagnosticClient<Channel> {
         // Use the same global runtime
         let rt = super::szdiagnostic_y::get_runtime();
-        rt.block_on(async move { get_grpc_client_async().await })
-            .unwrap()
+        let grpc_channel = rt.block_on(create_grpc_channel("0.0.0.0:8261")).unwrap();
+        SzDiagnosticClient::new(grpc_channel.clone())
     }
 
     pub fn get_szdiagnostic() -> super::szdiagnostic_y::SzDiagnostic {

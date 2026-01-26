@@ -5,6 +5,7 @@ use super::szproduct_y;
 #[cfg(test)]
 mod test {
     use super::szproduct_y::sz_product_client::SzProductClient;
+    use crate::helper::create_grpc_channel;
     use tonic::transport::Channel;
 
     // ------------------------------------------------------------------------
@@ -39,17 +40,11 @@ mod test {
         result
     }
 
-    async fn get_grpc_client_async()
-    -> Result<SzProductClient<Channel>, Box<dyn std::error::Error + Send>> {
-        let result = SzProductClient::connect("http://0.0.0.0:8261").await;
-        Ok(result.unwrap())
-    }
-
     pub fn get_grpc_client() -> SzProductClient<Channel> {
         // Use the same global runtime
         let rt = super::szproduct_y::get_runtime();
-        rt.block_on(async move { get_grpc_client_async().await })
-            .unwrap()
+        let grpc_channel = rt.block_on(create_grpc_channel("0.0.0.0:8261")).unwrap();
+        SzProductClient::new(grpc_channel.clone())
     }
 
     pub fn get_szproduct() -> super::szproduct_y::SzProduct {

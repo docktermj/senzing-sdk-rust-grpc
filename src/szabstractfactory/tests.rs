@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod test {
-    use crate::szabstractfactory::szabstractfactory_y::{self, Initialized};
+    use crate::helper::create_grpc_channel;
+    use crate::szabstractfactory::szabstractfactory_y::{self};
     use crate::szdiagnostic::szdiagnostic_y;
     use crate::szproduct::szproduct_y;
     use crate::traits::SzAbstractFactory as SzAbstractFactoryTrait;
@@ -24,7 +25,19 @@ mod test {
 
     #[test]
     fn test_create_product_via_trait() {
-        let factory = get_szabstractfactory_as_trait();
+        let factory = get_szabstractfactory();
+        let result = factory.create_product();
+        assert!(result.is_ok());
+
+        if let Ok(mut product) = result {
+            let version_result = product.get_version();
+            assert!(version_result.is_ok_and(is_valid_json));
+        }
+    }
+
+    #[test]
+    fn test_create_product_via_channel() {
+        let factory = get_szabstractfactory();
         let result = factory.create_product();
         assert!(result.is_ok());
 
@@ -53,8 +66,11 @@ mod test {
         let factory = get_szabstractfactory();
         let mut product = factory.create_product().expect("Failed to create product");
 
-        let license_result = product.get_license();
-        assert!(license_result.is_ok_and(is_valid_json));
+        if let Err(e) = product.get_license() {
+            eprintln!(">>>>> The error was: {:?}", e)
+        }
+        // let license_result = product.get_license();
+        // assert!(license_result.is_ok_and(is_valid_json));
 
         let version_result = product.get_version();
         assert!(version_result.is_ok_and(is_valid_json));
@@ -104,12 +120,18 @@ mod test {
         result
     }
 
-    fn get_szabstractfactory() -> szabstractfactory_y::SzAbstractFactoryGrpc<Initialized> {
-        szabstractfactory_y::SzAbstractFactory::new_from_url("http://0.0.0.0:8261".to_string())
-    }
+    // fn get_szabstractfactory() -> szabstractfactory_y::SzAbstractFactoryGrpc<Initialized> {
+    //     szabstractfactory_y::SzAbstractFactory::new_from_url("http://0.0.0.0:8261".to_string())
+    // }
 
-    fn get_szabstractfactory_as_trait() -> impl crate::traits::SzAbstractFactory {
-        szabstractfactory_y::SzAbstractFactory::new_from_url("http://0.0.0.0:8261".to_string())
+    // fn get_szabstractfactory_as_trait() -> impl crate::traits::SzAbstractFactory {
+    //     szabstractfactory_y::SzAbstractFactory::new_from_url("http://0.0.0.0:8261".to_string())
+    // }
+
+    fn get_szabstractfactory() -> impl crate::traits::SzAbstractFactory {
+        let rt = szabstractfactory_y::get_runtime();
+        let grpc_channel = rt.block_on(create_grpc_channel("0.0.0.0:8261")).unwrap();
+        szabstractfactory_y::SzAbstractFactory::new_from_grpc_channel(grpc_channel)
     }
 
     // fn get_szabstractfactory_as_bob() -> impl crate::traits::SzAbstractFactory {

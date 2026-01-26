@@ -1,6 +1,7 @@
 {
     "cSpell.words": [
         "alnum",
+        "cccceeee",
         "coleifer",
         "DYLD",
         "GOBIN",
@@ -10,8 +11,11 @@
         "OSARCH",
         "osdetect",
         "OSTYPE",
+        "parseable",
+        "Passw",
         "prost",
         "protos",
+        "replacen",
         "rustup",
         "senzing",
         "serde",
@@ -21,6 +25,8 @@
         "szdiagnostic",
         "szengine",
         "szproduct",
+        "SZSDK",
+        "testdata",
         "thingee",
         "toplevel",
         "xyzzy"
