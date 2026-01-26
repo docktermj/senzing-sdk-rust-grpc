@@ -66,11 +66,8 @@ mod test {
         let factory = get_szabstractfactory();
         let mut product = factory.create_product().expect("Failed to create product");
 
-        if let Err(e) = product.get_license() {
-            eprintln!(">>>>> The error was: {:?}", e)
-        }
-        // let license_result = product.get_license();
-        // assert!(license_result.is_ok_and(is_valid_json));
+        let license_result = product.get_license();
+        assert!(license_result.is_ok_and(is_valid_json));
 
         let version_result = product.get_version();
         assert!(version_result.is_ok_and(is_valid_json));

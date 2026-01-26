@@ -12,8 +12,8 @@
 //! - `SENZING_TOOLS_CLIENT_KEY_FILE`: Path to client private key (for mTLS)
 //! - `SENZING_TOOLS_CLIENT_KEY_PASSPHRASE`: Optional passphrase for encrypted client key
 
-use pkcs8::der::pem::PemLabel;
 use pkcs8::der::Decode;
+use pkcs8::der::pem::PemLabel;
 use pkcs8::{EncryptedPrivateKeyInfo, LineEnding, SecretDocument};
 use std::env;
 use std::fs;
@@ -226,10 +226,8 @@ pub async fn create_grpc_channel(grpc_url: &str) -> Result<Channel, Box<dyn std:
     match config.mode {
         TlsMode::Insecure => {
             // No TLS configuration needed
-            println!(">>>>>>>>>>!! Insecure");
         }
         TlsMode::ServerTls => {
-            println!(">>>>>>>>>>!! ServerTls");
             if let Some(ca_cert) = config.server_ca_cert {
                 let ca = Certificate::from_pem(ca_cert);
                 let tls_config = ClientTlsConfig::new().ca_certificate(ca);
@@ -237,7 +235,6 @@ pub async fn create_grpc_channel(grpc_url: &str) -> Result<Channel, Box<dyn std:
             }
         }
         TlsMode::MutualTls => {
-            println!(">>>>>>>>>>!! MutualTls");
             if let (Some(ca_cert), Some(client_cert), Some(client_key)) =
                 (config.server_ca_cert, config.client_cert, config.client_key)
             {
@@ -286,11 +283,10 @@ fn read_certificate_file(path: &str) -> Result<Vec<u8>, TransportCredentialsErro
 /// using the passphrase from the `SENZING_TOOLS_CLIENT_KEY_PASSPHRASE` environment variable.
 fn read_key_file(path: &str) -> Result<Vec<u8>, TransportCredentialsError> {
     let clean_path = Path::new(path);
-    let key_data =
-        fs::read(clean_path).map_err(|e| TransportCredentialsError::KeyReadError {
-            path: path.to_string(),
-            source: e,
-        })?;
+    let key_data = fs::read(clean_path).map_err(|e| TransportCredentialsError::KeyReadError {
+        path: path.to_string(),
+        source: e,
+    })?;
 
     // Check if the key is encrypted
     let key_str = String::from_utf8_lossy(&key_data);
@@ -306,12 +302,11 @@ fn read_key_file(path: &str) -> Result<Vec<u8>, TransportCredentialsError> {
         })?;
 
         // Decode PEM to DER bytes
-        let (label, der_bytes) =
-            pkcs8::der::pem::decode_vec(key_str.as_bytes()).map_err(|e| {
-                TransportCredentialsError::KeyDecryptionError {
-                    message: format!("Failed to decode PEM: {}", e),
-                }
-            })?;
+        let (label, der_bytes) = pkcs8::der::pem::decode_vec(key_str.as_bytes()).map_err(|e| {
+            TransportCredentialsError::KeyDecryptionError {
+                message: format!("Failed to decode PEM: {}", e),
+            }
+        })?;
 
         // Verify it's an encrypted private key
         if label != EncryptedPrivateKeyInfo::PEM_LABEL {
