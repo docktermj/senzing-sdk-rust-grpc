@@ -41,9 +41,8 @@ pub mod szdiagnostic_y {
             let rt = get_runtime();
 
             let response = rt.block_on(async move {
-                let request = tonic::Request::new(CheckRepositoryPerformanceRequest {
-                    seconds_to_run: seconds_to_run,
-                });
+                let request =
+                    tonic::Request::new(CheckRepositoryPerformanceRequest { seconds_to_run });
                 client.check_repository_performance(request).await
             })?;
 
@@ -58,9 +57,7 @@ pub mod szdiagnostic_y {
             let rt = get_runtime();
 
             let response = rt.block_on(async move {
-                let request = tonic::Request::new(GetFeatureRequest {
-                    feature_id: feature_id,
-                });
+                let request = tonic::Request::new(GetFeatureRequest { feature_id });
                 client.get_feature(request).await
             })?;
 
@@ -91,17 +88,12 @@ pub mod szdiagnostic_y {
             Ok(())
         }
 
-        pub fn reinitialize(
-            &mut self,
-            config_id: i64,
-        ) -> Result<(), Box<dyn std::error::Error>> {
+        pub fn reinitialize(&mut self, config_id: i64) -> Result<(), Box<dyn std::error::Error>> {
             let mut client = self.grpc_client.clone();
             let rt = get_runtime();
 
             rt.block_on(async move {
-                let request = tonic::Request::new(ReinitializeRequest {
-                    config_id: config_id,
-                });
+                let request = tonic::Request::new(ReinitializeRequest { config_id });
                 client.reinitialize(request).await
             })?;
 
