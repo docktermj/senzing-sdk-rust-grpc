@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod test {
-    use crate::helper::create_grpc_channel;
+    use crate::helper::json::is_valid_json;
+    use crate::helper::{create_grpc_channel, create_grpc_channel_blocking};
     use crate::szabstractfactory::szabstractfactory_y::{self};
     use crate::szdiagnostic::szdiagnostic_y;
     use crate::szproduct::szproduct_y;
@@ -25,7 +26,7 @@ mod test {
 
     #[test]
     fn test_create_product_via_trait() {
-        let factory = get_szabstractfactory();
+        let factory = get_szabstractfactory_as_trait();
         let result = factory.create_product();
         assert!(result.is_ok());
 
@@ -111,27 +112,19 @@ mod test {
     // Test helper functions
     // ------------------------------------------------------------------------
 
-    fn is_valid_json(s: String) -> bool {
-        let result = serde_json::from_str::<serde_json::Value>(&s).is_ok();
-        println!("\n>>>>>> is_valid_json:{:?}; JSON: {:?}", result, s);
-        result
-    }
-
     // fn get_szabstractfactory() -> szabstractfactory_y::SzAbstractFactoryGrpc<Initialized> {
     //     szabstractfactory_y::SzAbstractFactory::new_from_url("http://0.0.0.0:8261".to_string())
     // }
 
-    // fn get_szabstractfactory_as_trait() -> impl crate::traits::SzAbstractFactory {
-    //     szabstractfactory_y::SzAbstractFactory::new_from_url("http://0.0.0.0:8261".to_string())
-    // }
-
     fn get_szabstractfactory() -> impl crate::traits::SzAbstractFactory {
+        let runtime = szabstractfactory_y::get_runtime();
+        let grpc_channel = create_grpc_channel_blocking("0.0.0.0:8261", runtime).unwrap();
+        szabstractfactory_y::SzAbstractFactory::new_from_grpc_channel(grpc_channel)
+    }
+
+    fn get_szabstractfactory_as_trait() -> impl crate::traits::SzAbstractFactory {
         let rt = szabstractfactory_y::get_runtime();
         let grpc_channel = rt.block_on(create_grpc_channel("0.0.0.0:8261")).unwrap();
         szabstractfactory_y::SzAbstractFactory::new_from_grpc_channel(grpc_channel)
     }
-
-    // fn get_szabstractfactory_as_bob() -> impl crate::traits::SzAbstractFactory {
-    //     szabstractfactory_y::SzAbstractFactory::
-    // }
 }

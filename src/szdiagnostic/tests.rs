@@ -6,7 +6,8 @@ use super::szdiagnostic_y;
 mod test {
 
     use super::szdiagnostic_y::sz_diagnostic_client::SzDiagnosticClient;
-    use crate::helper::create_grpc_channel;
+    use crate::helper::create_grpc_channel_blocking;
+    use crate::helper::json::is_valid_json;
     use tonic::transport::Channel;
 
     // ------------------------------------------------------------------------
@@ -53,16 +54,9 @@ mod test {
     // Test helper functions
     // ------------------------------------------------------------------------
 
-    fn is_valid_json(s: String) -> bool {
-        let result = serde_json::from_str::<serde_json::Value>(&s).is_ok();
-        println!("\n>>>>>> is_valid_json:{:?}; JSON: {:?}", result, s);
-        result
-    }
-
     pub fn get_grpc_client() -> SzDiagnosticClient<Channel> {
-        // Use the same global runtime
-        let rt = super::szdiagnostic_y::get_runtime();
-        let grpc_channel = rt.block_on(create_grpc_channel("0.0.0.0:8261")).unwrap();
+        let runtime = super::szdiagnostic_y::get_runtime();
+        let grpc_channel = create_grpc_channel_blocking("0.0.0.0:8261", runtime).unwrap();
         SzDiagnosticClient::new(grpc_channel.clone())
     }
 
