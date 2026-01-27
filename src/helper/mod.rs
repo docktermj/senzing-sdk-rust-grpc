@@ -10,8 +10,10 @@ mod constants;
 mod error;
 #[cfg(test)]
 pub mod json;
+pub mod runtime;
 mod transport_credentials;
 
 pub use constants::*;
 pub use error::*;
+pub use runtime::*;
 pub use transport_credentials::*;

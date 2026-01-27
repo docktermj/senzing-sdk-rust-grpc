@@ -6,26 +6,11 @@ pub mod szabstractfactory_y {
     use crate::szdiagnostic::szdiagnostic_y;
     use crate::szproduct::szproduct_y;
     use std::cell::Cell;
-    use std::sync::OnceLock;
+    use std::sync::Arc;
     use szdiagnostic_y::sz_diagnostic_client::SzDiagnosticClient;
     use szproduct_y::sz_product_client::SzProductClient;
     use tokio::runtime::Runtime;
     use tonic::transport::Channel;
-
-    // ------------------------------------------------------------------------
-    // Global runtime that persists for the lifetime of the program
-    // ------------------------------------------------------------------------
-
-    static RUNTIME: OnceLock<Runtime> = OnceLock::new();
-
-    pub(crate) fn get_runtime() -> &'static Runtime {
-        RUNTIME.get_or_init(|| {
-            tokio::runtime::Builder::new_multi_thread()
-                .enable_all()
-                .build()
-                .expect("Failed to create tokio runtime")
-        })
-    }
 
     // ------------------------------------------------------------------------
     // SzAbstractFactory
@@ -34,18 +19,11 @@ pub mod szabstractfactory_y {
     pub struct SzAbstractFactory;
 
     impl SzAbstractFactory {
-        pub fn new_from_url(grpc_url: String) -> SzAbstractFactoryGrpc<Initialized> {
-            let rt = get_runtime();
-            let grpc_channel: tonic::transport::Channel = rt
-                .block_on(async { tonic::transport::Endpoint::new(grpc_url)?.connect().await })
-                .expect("Failed to connect to gRPC server");
-            SzAbstractFactoryGrpc::new(grpc_channel)
-        }
-
-        pub fn new_from_grpc_channel(
+        pub fn new_using_tonic_and_tokio(
             grpc_channel: tonic::transport::Channel,
-        ) -> SzAbstractFactoryGrpc<Initialized> {
-            SzAbstractFactoryGrpc::new(grpc_channel)
+            runtime: tokio::runtime::Runtime,
+        ) -> impl crate::traits::SzAbstractFactory {
+            SzAbstractFactoryGrpc::new(grpc_channel, runtime)
         }
     }
 
@@ -60,14 +38,19 @@ pub mod szabstractfactory_y {
 
     pub struct SzAbstractFactoryGrpc<State = Uninitialized> {
         grpc_channel: tonic::transport::Channel,
+        runtime: Arc<Runtime>,
         is_closed: Cell<bool>,
         state: std::marker::PhantomData<State>,
     }
 
     impl SzAbstractFactoryGrpc<Uninitialized> {
-        pub fn new(grpc_channel: tonic::transport::Channel) -> SzAbstractFactoryGrpc<Initialized> {
+        pub fn new(
+            grpc_channel: tonic::transport::Channel,
+            runtime: tokio::runtime::Runtime,
+        ) -> SzAbstractFactoryGrpc<Initialized> {
             SzAbstractFactoryGrpc {
                 grpc_channel,
+                runtime: Arc::new(runtime),
                 state: std::marker::PhantomData::<Initialized>,
                 is_closed: Cell::new(false),
             }
@@ -81,7 +64,10 @@ pub mod szabstractfactory_y {
             }
             let grpc_client: SzProductClient<Channel> =
                 SzProductClient::new(self.grpc_channel.clone());
-            Ok(szproduct_y::SzProduct::new(grpc_client))
+            Ok(szproduct_y::SzProduct::new(
+                grpc_client,
+                Arc::clone(&self.runtime),
+            ))
         }
 
         pub fn create_diagnostic(

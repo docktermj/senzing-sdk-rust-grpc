@@ -7,6 +7,8 @@ mod test {
     use super::szproduct_y::sz_product_client::SzProductClient;
     use crate::helper::create_grpc_channel_blocking;
     use crate::helper::json::is_valid_json;
+    use crate::helper::runtime::get_runtime;
+    use std::sync::Arc;
     use tonic::transport::Channel;
 
     // ------------------------------------------------------------------------
@@ -36,14 +38,16 @@ mod test {
     // ------------------------------------------------------------------------
 
     pub fn get_grpc_client() -> SzProductClient<Channel> {
-        let runtime = super::szproduct_y::get_runtime();
+        let runtime = get_runtime();
         let grpc_channel = create_grpc_channel_blocking("0.0.0.0:8261", runtime).unwrap();
         SzProductClient::new(grpc_channel)
     }
 
     pub fn get_szproduct() -> super::szproduct_y::SzProduct {
-        super::szproduct_y::SzProduct {
-            grpc_client: get_grpc_client(),
-        }
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .expect("Failed to create tokio runtime");
+        super::szproduct_y::SzProduct::new(get_grpc_client(), Arc::new(runtime))
     }
 }

@@ -116,15 +116,25 @@ mod test {
     //     szabstractfactory_y::SzAbstractFactory::new_from_url("http://0.0.0.0:8261".to_string())
     // }
 
+    // Uses helper.create_grpc_channel_blocking.
     fn get_szabstractfactory() -> impl crate::traits::SzAbstractFactory {
-        let runtime = szabstractfactory_y::get_runtime();
-        let grpc_channel = create_grpc_channel_blocking("0.0.0.0:8261", runtime).unwrap();
-        szabstractfactory_y::SzAbstractFactory::new_from_grpc_channel(grpc_channel)
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .expect("Failed to create tokio runtime");
+        let grpc_channel = create_grpc_channel_blocking("0.0.0.0:8261", &runtime).unwrap();
+        szabstractfactory_y::SzAbstractFactory::new_using_tonic_and_tokio(grpc_channel, runtime)
     }
 
+    // Uses helper.create_grpc_channel.
     fn get_szabstractfactory_as_trait() -> impl crate::traits::SzAbstractFactory {
-        let rt = szabstractfactory_y::get_runtime();
-        let grpc_channel = rt.block_on(create_grpc_channel("0.0.0.0:8261")).unwrap();
-        szabstractfactory_y::SzAbstractFactory::new_from_grpc_channel(grpc_channel)
+        let runtime = tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .expect("Failed to create tokio runtime");
+        let grpc_channel = runtime
+            .block_on(create_grpc_channel("0.0.0.0:8261"))
+            .unwrap();
+        szabstractfactory_y::SzAbstractFactory::new_using_tonic_and_tokio(grpc_channel, runtime)
     }
 }
