@@ -2,6 +2,63 @@ use serde_json::Value;
 use std::error::Error;
 use std::fmt;
 
+pub enum SzError {
+    SzBadInputError,
+    SzConfigurationError,
+    SzDatabaseConnectionLostError,
+    SzDatabaseError,
+    SzDatabaseTransientError,
+    SzGeneralError,
+    SzLicenseError,
+    SzNotFoundError,
+    SzNotInitializedError,
+    SzReplaceConflictError,
+    SzRetryableError,
+    SzRetryTimeoutExceededError,
+    SzSdkError,
+    SzUnhandledError,
+    SzUnknownDataSourceError,
+    SzUnrecoverableError,
+}
+
+#[macro_export]
+macro_rules! bad_input_error {
+    () => {
+        SzError::SzBadInputError | SzError::SzNotFoundError | SzError::SzUnknownDataSourceError
+    };
+}
+
+#[macro_export]
+macro_rules! general_error {
+    () => {
+        SzError::SzGeneralError
+            | SzError::SzConfigurationError
+            | SzError::SzReplaceConflictError
+            | SzError::SzSdkError
+    };
+}
+
+#[macro_export]
+macro_rules! retryable_error {
+    () => {
+        SzError::SzRetryableError
+            | SzError::SzDatabaseConnectionLostError
+            | SzError::SzDatabaseTransientError
+            | SzError::SzRetryTimeoutExceededError
+    };
+}
+
+#[macro_export]
+macro_rules! unrecoverable_error {
+    () => {
+        SzError::SzUnrecoverableError
+            | SzError::SzDatabaseError
+            | SzError::SzLicenseError
+            | SzError::SzNotInitializedError
+            | SzError::SzUnhandledError
+    };
+}
+
 /// A Senzing-specific error extracted from a gRPC error response.
 #[derive(Debug)]
 pub struct SenzingError {
@@ -172,15 +229,40 @@ fn extract_reason_from_json(json_value: &Value) -> Option<String> {
     None
 }
 
+// fn try_thing() -> SzError {
+//     SzError::SzBadInputError
+// }
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
+    fn test_match() {
+        let target = SzError::SzNotFoundError;
+
+        match target {
+            bad_input_error!() => {
+                println!("\n>>>>>>match: Is SzBadInputError")
+            }
+            general_error!() => {
+                println!("\n>>>>>>match: Is SzGeneralError")
+            }
+            retryable_error!() => {
+                println!("\n>>>>>>match: Is SzRecoverableError")
+            }
+            unrecoverable_error!() => {
+                println!("\n>>>>>>match: Is SzUnrecoverableError")
+            } // _ => {
+              //     println!("\n>>>>>>match: SzError")
+              // }
+        }
+    }
+
+    #[test]
     fn test_reason_from_direct_json() {
-        let error = build_senzing_error(
-            r#"rpc error: code = Unknown desc = {"reason": "SZSDK00010001"}"#,
-        );
+        let error =
+            build_senzing_error(r#"rpc error: code = Unknown desc = {"reason": "SZSDK00010001"}"#);
         assert_eq!(error.reason(), "SZSDK00010001");
     }
 
