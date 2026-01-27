@@ -18,7 +18,7 @@ pub mod szproduct_y {
     }
 
     impl SzProduct {
-        pub fn new(grpc_client: SzProductClient<Channel>, runtime: Arc<Runtime>) -> Self {
+        pub fn new(runtime: Arc<Runtime>, grpc_client: SzProductClient<Channel>) -> Self {
             Self {
                 grpc_client,
                 runtime,

@@ -1,5 +1,3 @@
-// use serde_json::Value;
-
 use super::szdiagnostic_y;
 
 #[cfg(test)]
@@ -8,6 +6,8 @@ mod test {
     use super::szdiagnostic_y::sz_diagnostic_client::SzDiagnosticClient;
     use crate::helper::create_grpc_channel_blocking;
     use crate::helper::json::is_valid_json;
+    use crate::helper::runtime::build_runtime;
+    use std::sync::Arc;
     use tonic::transport::Channel;
 
     // ------------------------------------------------------------------------
@@ -54,15 +54,14 @@ mod test {
     // Test helper functions
     // ------------------------------------------------------------------------
 
-    pub fn get_grpc_client() -> SzDiagnosticClient<Channel> {
-        let runtime = super::szdiagnostic_y::get_runtime();
+    pub fn get_grpc_client(runtime: &tokio::runtime::Runtime) -> SzDiagnosticClient<Channel> {
         let grpc_channel = create_grpc_channel_blocking("0.0.0.0:8261", runtime).unwrap();
-        SzDiagnosticClient::new(grpc_channel.clone())
+        SzDiagnosticClient::new(grpc_channel)
     }
 
     pub fn get_szdiagnostic() -> super::szdiagnostic_y::SzDiagnostic {
-        super::szdiagnostic_y::SzDiagnostic {
-            grpc_client: get_grpc_client(),
-        }
+        let runtime = build_runtime();
+        let grpc_client = get_grpc_client(&runtime);
+        super::szdiagnostic_y::SzDiagnostic::new(Arc::new(runtime), grpc_client)
     }
 }

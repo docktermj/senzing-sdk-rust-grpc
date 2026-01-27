@@ -60,13 +60,13 @@ pub mod szabstractfactory_y {
     impl SzAbstractFactoryGrpc<Initialized> {
         pub fn create_product(&self) -> Result<szproduct_y::SzProduct, Box<dyn std::error::Error>> {
             if self.is_closed.get() {
-                return Err("AbstractFactory has been destroyed".into());
+                return Err("AbstractFactory has been closed".into());
             }
             let grpc_client: SzProductClient<Channel> =
                 SzProductClient::new(self.grpc_channel.clone());
             Ok(szproduct_y::SzProduct::new(
-                grpc_client,
                 Arc::clone(&self.runtime),
+                grpc_client,
             ))
         }
 
@@ -74,11 +74,14 @@ pub mod szabstractfactory_y {
             &self,
         ) -> Result<szdiagnostic_y::SzDiagnostic, Box<dyn std::error::Error>> {
             if self.is_closed.get() {
-                return Err("AbstractFactory has been destroyed".into());
+                return Err("AbstractFactory has been closed".into());
             }
             let grpc_client: SzDiagnosticClient<Channel> =
                 SzDiagnosticClient::new(self.grpc_channel.clone());
-            Ok(szdiagnostic_y::SzDiagnostic { grpc_client })
+            Ok(szdiagnostic_y::SzDiagnostic::new(
+                Arc::clone(&self.runtime),
+                grpc_client,
+            ))
         }
 
         pub fn close(&self) -> Result<(), Box<dyn std::error::Error>> {
