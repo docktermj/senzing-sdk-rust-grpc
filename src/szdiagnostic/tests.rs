@@ -5,8 +5,10 @@ mod test {
 
     use super::szdiagnostic_y::sz_diagnostic_client::SzDiagnosticClient;
     use crate::helper::create_grpc_channel_blocking;
+    // use crate::helper::error::build_senzing_error;
     use crate::helper::json::is_valid_json;
     use crate::helper::runtime::build_runtime;
+
     use std::sync::Arc;
     use tonic::transport::Channel;
 
@@ -29,7 +31,16 @@ mod test {
     // #[test]
     // fn test_get_feature() {
     //     let result = get_szdiagnostic().get_feature(1);
-    //     assert!(result.is_ok_and(is_valid_json));
+    //     if let Err(e) = result.as_ref() {
+    //         let bob = e.
+    //         let senzing_error = build_senzing_error(e);
+    //         let reason = senzing_error.reason();
+    //         // Verify we can extract the reason from the error
+    //         if !reason.is_empty() {
+    //             println!("Extracted reason: {}", reason);
+    //         }
+    //     }
+    //     assert!(result.is_err());
     // }
 
     #[test]

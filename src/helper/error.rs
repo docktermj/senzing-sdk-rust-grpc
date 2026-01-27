@@ -1,98 +1,159 @@
-//! Error conversion utilities for gRPC responses.
-//!
-//! This module provides utilities for converting gRPC status errors
-//! into Senzing-formatted errors with proper error code extraction.
-
 use serde_json::Value;
 use std::error::Error;
 use std::fmt;
 
-const MAX_REASONS: usize = 10;
-
 /// A Senzing-specific error extracted from a gRPC error response.
 #[derive(Debug)]
 pub struct SenzingError {
-    pub error_code: Option<i32>,
-    pub message: String,
-    pub reason: Option<String>,
+    message: String,
 }
 
 impl fmt::Display for SenzingError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(code) = self.error_code {
-            write!(f, "SenzingError({}): {}", code, self.message)
-        } else {
-            write!(f, "SenzingError: {}", self.message)
-        }
+        write!(f, "SenzingError: {}", self.message)
+    }
+}
+
+/// Builds a SenzingError from any type that can be converted to a string.
+///
+/// # Arguments
+///
+/// * `error` - Any value that implements `ToString` (errors, strings, etc.)
+///
+/// # Example
+///
+/// ```ignore
+/// // From an error
+/// let senzing_err = build_senzing_error(&some_error);
+///
+/// // From a string
+/// let senzing_err = build_senzing_error("error message");
+/// ```
+pub fn build_senzing_error(error: impl ToString) -> SenzingError {
+    SenzingError {
+        message: error.to_string(),
+    }
+}
+
+impl SenzingError {
+    /// Extracts the "reason" field from JSON embedded in the error message.
+    ///
+    /// This method searches for JSON in the error message and attempts to extract
+    /// the "reason" field. The JSON may contain the reason directly or nested within
+    /// an "error" object.
+    ///
+    /// # Returns
+    ///
+    /// The reason string if found, otherwise an empty string.
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let error = build_senzing_error(Box::new(std::io::Error::other(
+    ///     r#"rpc error: code = Unknown desc = {"reason": "SZSDK00010001"}"#
+    /// )));
+    /// assert_eq!(error.reason(), "SZSDK00010001");
+    /// ```
+    pub fn reason(&self) -> String {
+        extract_reason_from_message(&self.message).unwrap_or_default()
     }
 }
 
 impl Error for SenzingError {}
 
-/// Converts a gRPC error into a Senzing error if possible.
+/// Extracts the "reason" field from an error message containing JSON.
 ///
-/// This function examines the error message for embedded JSON containing
-/// Senzing-specific error information and extracts it into a `SenzingError`.
-///
-/// # Arguments
-///
-/// * `original_error` - The error received from a gRPC call
-///
-/// # Returns
-///
-/// * `Some(SenzingError)` if the error contains Senzing error information
-/// * `None` if the error is not a Senzing gRPC error
-///
-/// # Example
-///
-/// ```ignore
-/// use senzing_sdk_rust_grpc::helper::convert_grpc_error;
-///
-/// let result = some_grpc_call().await;
-/// if let Err(e) = result {
-///     if let Some(senzing_error) = convert_grpc_error(&e) {
-///         println!("Senzing error code: {:?}", senzing_error.error_code);
-///     }
-/// }
-/// ```
-pub fn convert_grpc_error<E: Error>(original_error: &E) -> Option<SenzingError> {
-    let error_message = original_error.to_string();
-    convert_grpc_error_message(&error_message)
-}
-
-/// Converts a gRPC error message string into a Senzing error if possible.
+/// This function looks for JSON in the error message and attempts to extract
+/// the "reason" field from it. It handles both direct JSON and escaped JSON strings.
 ///
 /// # Arguments
 ///
-/// * `grpc_error_message` - The error message string from a gRPC call
+/// * `message` - The error message string that may contain embedded JSON
 ///
 /// # Returns
 ///
-/// * `Some(SenzingError)` if the message contains Senzing error information
-/// * `None` if the message is not a Senzing gRPC error
-pub fn convert_grpc_error_message(grpc_error_message: &str) -> Option<SenzingError> {
-    // Look for the "desc = " field in the gRPC error
-    const DESC_PREFIX: &str = " desc = ";
+/// * `Some(String)` if a reason field was found in the JSON
+/// * `None` if no JSON or reason field was found
+fn extract_reason_from_message(message: &str) -> Option<String> {
+    // Try to find and parse escaped JSON in the "self:" field
+    if let Some(self_index) = message.find("self: \"") {
+        let json_start = self_index + 7; // Length of "self: \""
+        let remaining = &message[json_start..];
 
-    let desc_index = grpc_error_message.find(DESC_PREFIX)?;
-    let senzing_error_message = &grpc_error_message[desc_index + DESC_PREFIX.len()..];
+        // Find the end of the escaped JSON string (look for closing quote)
+        // We need to handle escaped quotes within the JSON
+        if let Some(json_end) = find_json_string_end(remaining) {
+            let escaped_json = &remaining[..json_end];
 
-    // Find the start of JSON
-    let brace_index = senzing_error_message.find('{')?;
-    let senzing_error_json = &senzing_error_message[brace_index..];
+            // Unescape the JSON string by replacing escape sequences
+            let unescaped_json = escaped_json
+                .replace("\\\"", "\"")
+                .replace("\\n", "\n")
+                .replace("\\\\", "\\");
+
+            // Try to parse as JSON
+            if let Ok(json_value) = serde_json::from_str::<Value>(&unescaped_json) {
+                if let Some(reason) = extract_reason_from_json(&json_value) {
+                    return Some(reason);
+                }
+            }
+        }
+    }
+
+    // Fallback: Look for JSON by finding opening braces
+    let brace_index = message.find('{')?;
+    let json_str = &message[brace_index..];
 
     // Try to parse as JSON
-    let json_value: Value = serde_json::from_str(senzing_error_json).ok()?;
+    let json_value: Value = serde_json::from_str(json_str).ok()?;
 
-    // Extract reason from JSON
-    let reason = extract_reason_from_json(&json_value)?;
-
-    Some(create_error_from_reason(senzing_error_json, &reason))
+    // Extract the reason field from the JSON
+    extract_reason_from_json(&json_value)
 }
 
-/// Extracts the "reason" field from a JSON error structure.
+/// Finds the end of an escaped JSON string by looking for the closing quote.
+///
+/// This function handles escaped quotes within the JSON string.
+///
+/// # Arguments
+///
+/// * `s` - The string starting with an escaped JSON value
+///
+/// # Returns
+///
+/// * `Some(usize)` - The index of the closing quote
+/// * `None` - If no closing quote is found
+fn find_json_string_end(s: &str) -> Option<usize> {
+    let mut in_escape = false;
+    for (i, c) in s.chars().enumerate() {
+        if in_escape {
+            in_escape = false;
+            continue;
+        }
+        match c {
+            '\\' => in_escape = true,
+            '"' => return Some(i),
+            _ => {}
+        }
+    }
+    None
+}
+
+/// Extracts the "reason" field from a JSON value.
+///
+/// This function recursively searches for the "reason" field in the JSON,
+/// checking both the root level and nested "error" objects.
+///
+/// # Arguments
+///
+/// * `json_value` - The parsed JSON value to search
+///
+/// # Returns
+///
+/// * `Some(String)` if a "reason" field was found
+/// * `None` if no "reason" field exists
 fn extract_reason_from_json(json_value: &Value) -> Option<String> {
-    // Try to get "reason" directly
+    // Try to get "reason" directly at the root level
     if let Some(reason) = json_value.get("reason").and_then(|v| v.as_str()) {
         return Some(reason.to_string());
     }
@@ -102,44 +163,48 @@ fn extract_reason_from_json(json_value: &Value) -> Option<String> {
         if let Some(reason) = error_obj.get("reason").and_then(|v| v.as_str()) {
             return Some(reason.to_string());
         }
-        // Recursively check nested error
+        // Recursively check nested error objects
         if let Some(nested_error) = error_obj.get("error") {
             return extract_reason_from_json(nested_error);
         }
     }
 
-    // Return the JSON as a string if no reason found
-    Some(json_value.to_string())
-}
-
-/// Creates a SenzingError from a reason string.
-fn create_error_from_reason(error_message: &str, reason: &str) -> SenzingError {
-    if reason.len() < MAX_REASONS {
-        return SenzingError {
-            error_code: None,
-            message: format!("errorMessage: {}; reason: {}", error_message, reason),
-            reason: Some(reason.to_string()),
-        };
-    }
-
-    // Try to extract Senzing error code from reason (format: "XXXX1234...")
-    // The error code is typically at positions 4-8 in the reason string
-    let error_code = if reason.len() >= 8 {
-        reason[4..8].parse::<i32>().ok()
-    } else {
-        None
-    };
-
-    SenzingError {
-        error_code,
-        message: error_message.to_string(),
-        reason: Some(reason.to_string()),
-    }
+    None
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_reason_from_direct_json() {
+        let error = build_senzing_error(
+            r#"rpc error: code = Unknown desc = {"reason": "SZSDK00010001"}"#,
+        );
+        assert_eq!(error.reason(), "SZSDK00010001");
+    }
+
+    #[test]
+    fn test_reason_from_nested_json() {
+        let error = build_senzing_error(
+            r#"rpc error: code = Unknown desc = {"error": {"reason": "SZSDK00020002"}}"#,
+        );
+        assert_eq!(error.reason(), "SZSDK00020002");
+    }
+
+    #[test]
+    fn test_reason_no_json() {
+        let error = build_senzing_error("rpc error: code = Unknown desc = plain text error");
+        assert_eq!(error.reason(), "");
+    }
+
+    #[test]
+    fn test_reason_json_without_reason_field() {
+        let error = build_senzing_error(
+            r#"rpc error: code = Unknown desc = {"message": "something went wrong"}"#,
+        );
+        assert_eq!(error.reason(), "");
+    }
 
     #[test]
     fn test_extract_reason_from_json_direct() {
@@ -162,42 +227,32 @@ mod tests {
     }
 
     #[test]
-    fn test_create_error_from_reason_with_code() {
-        // Test with a reason string where positions 4-8 contain a parseable integer
-        // The Go code extracts reason[4:8] and parses it as an integer
-        let error = create_error_from_reason("test message", "XXXX0001ZZZZ Something went wrong");
-        assert_eq!(error.error_code, Some(1));
-        assert!(error.reason.is_some());
+    fn test_extract_reason_from_json_deeply_nested() {
+        let json: Value = serde_json::json!({
+            "error": {
+                "error": {
+                    "reason": "SZSDK00030003"
+                }
+            }
+        });
+        let reason = extract_reason_from_json(&json);
+        assert_eq!(reason, Some("SZSDK00030003".to_string()));
     }
 
     #[test]
-    fn test_create_error_from_reason_short() {
-        let error = create_error_from_reason("test message", "short");
-        assert_eq!(error.error_code, None);
-        assert!(error.message.contains("short"));
+    fn test_extract_reason_from_json_no_reason() {
+        let json: Value = serde_json::json!({
+            "message": "error occurred"
+        });
+        let reason = extract_reason_from_json(&json);
+        assert_eq!(reason, None);
     }
 
     #[test]
-    fn test_convert_grpc_error_message_valid() {
-        // Test with a reason string where positions 4-8 contain a parseable integer
-        let msg = r#"rpc error: code = Unknown desc = {"reason": "XXXX0042ZZZZ Error occurred"}"#;
-        let result = convert_grpc_error_message(msg);
-        assert!(result.is_some());
-        let error = result.unwrap();
-        assert_eq!(error.error_code, Some(42));
-    }
-
-    #[test]
-    fn test_convert_grpc_error_message_no_desc() {
-        let msg = "rpc error: code = Unknown";
-        let result = convert_grpc_error_message(msg);
-        assert!(result.is_none());
-    }
-
-    #[test]
-    fn test_convert_grpc_error_message_no_json() {
-        let msg = "rpc error: code = Unknown desc = plain text error";
-        let result = convert_grpc_error_message(msg);
-        assert!(result.is_none());
+    fn test_reason_from_grpc_error_with_escaped_json() {
+        // This tests the actual format we see from gRPC errors with deeply nested reason
+        let error_msg = r#"status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": {\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0057|Unknown feature ID value '1'\"}}}", metadata: {"content-type": "application/grpc"}"#;
+        let error = build_senzing_error(error_msg);
+        assert_eq!(error.reason(), "SENZ0057|Unknown feature ID value '1'");
     }
 }

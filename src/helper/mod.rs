@@ -7,7 +7,7 @@
 //! - Test utilities
 
 mod constants;
-mod error;
+pub mod error;
 pub mod isdestroyed;
 #[cfg(test)]
 pub mod json;
