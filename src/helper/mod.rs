@@ -8,6 +8,7 @@
 
 mod constants;
 mod error;
+pub mod isdestroyed;
 #[cfg(test)]
 pub mod json;
 pub mod runtime;

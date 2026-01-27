@@ -4,9 +4,7 @@ mod test {
     use crate::helper::runtime::build_runtime;
     use crate::helper::{create_grpc_channel, create_grpc_channel_blocking};
     use crate::szabstractfactory::szabstractfactory_y::{self};
-    use crate::szdiagnostic::szdiagnostic_y;
-    use crate::szproduct::szproduct_y;
-    use crate::traits::SzAbstractFactory as SzAbstractFactoryTrait;
+    use crate::traits::{SzAbstractFactory, SzDiagnostic, SzProduct};
 
     // ------------------------------------------------------------------------
     // Tests
@@ -15,8 +13,7 @@ mod test {
     #[test]
     fn test_create_product() {
         let factory = get_szabstractfactory();
-        let result: Result<szproduct_y::SzProduct, Box<dyn std::error::Error>> =
-            factory.create_product();
+        let result = factory.create_product();
         assert!(result.is_ok());
 
         if let Ok(mut product) = result {
@@ -52,9 +49,7 @@ mod test {
     #[test]
     fn test_create_diagnostic() {
         let factory = get_szabstractfactory();
-
-        let result: Result<szdiagnostic_y::SzDiagnostic, Box<dyn std::error::Error>> =
-            factory.create_diagnostic();
+        let result = factory.create_diagnostic();
         assert!(result.is_ok());
 
         if let Ok(mut diagnostic) = result {
@@ -113,15 +108,11 @@ mod test {
     // Test helper functions
     // ------------------------------------------------------------------------
 
-    // fn get_szabstractfactory() -> szabstractfactory_y::SzAbstractFactoryGrpc<Initialized> {
-    //     szabstractfactory_y::SzAbstractFactory::new_from_url("http://0.0.0.0:8261".to_string())
-    // }
-
     // Uses helper.create_grpc_channel_blocking.
     fn get_szabstractfactory() -> impl crate::traits::SzAbstractFactory {
         let runtime = build_runtime();
         let grpc_channel = create_grpc_channel_blocking("0.0.0.0:8261", &runtime).unwrap();
-        szabstractfactory_y::SzAbstractFactory::new_using_tonic_and_tokio(grpc_channel, runtime)
+        szabstractfactory_y::SzAbstractFactory::new_using_tonic_and_tokio(runtime, grpc_channel)
     }
 
     // Uses helper.create_grpc_channel.
@@ -130,6 +121,6 @@ mod test {
         let grpc_channel = runtime
             .block_on(create_grpc_channel("0.0.0.0:8261"))
             .unwrap();
-        szabstractfactory_y::SzAbstractFactory::new_using_tonic_and_tokio(grpc_channel, runtime)
+        szabstractfactory_y::SzAbstractFactory::new_using_tonic_and_tokio(runtime, grpc_channel)
     }
 }

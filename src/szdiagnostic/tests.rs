@@ -62,6 +62,6 @@ mod test {
     pub fn get_szdiagnostic() -> super::szdiagnostic_y::SzDiagnostic {
         let runtime = build_runtime();
         let grpc_client = get_grpc_client(&runtime);
-        super::szdiagnostic_y::SzDiagnostic::new(Arc::new(runtime), grpc_client)
+        super::szdiagnostic_y::SzDiagnosticGrpc::new(Arc::new(runtime), grpc_client)
     }
 }

@@ -1,11 +1,7 @@
 pub trait SzAbstractFactory {
     // fn new(grpc_url: String) -> Self;
-    fn create_product(
-        &self,
-    ) -> Result<crate::szproduct::szproduct_y::SzProduct, Box<dyn std::error::Error>>;
-    fn create_diagnostic(
-        &self,
-    ) -> Result<crate::szdiagnostic::szdiagnostic_y::SzDiagnostic, Box<dyn std::error::Error>>;
+    fn create_product(&self) -> Result<impl SzProduct, Box<dyn std::error::Error>>;
+    fn create_diagnostic(&self) -> Result<impl SzDiagnostic, Box<dyn std::error::Error>>;
     fn close(&self) -> Result<(), Box<dyn std::error::Error>>;
 }
 

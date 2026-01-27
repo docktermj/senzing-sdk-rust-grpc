@@ -43,6 +43,6 @@ mod test {
     pub fn get_szproduct() -> super::szproduct_y::SzProduct {
         let runtime = build_runtime();
         let grpc_client = get_grpc_client(&runtime);
-        super::szproduct_y::SzProduct::new(Arc::new(runtime), grpc_client)
+        super::szproduct_y::SzProductGrpc::new(Arc::new(runtime), grpc_client)
     }
 }
