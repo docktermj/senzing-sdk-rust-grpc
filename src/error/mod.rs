@@ -5,6 +5,10 @@ use serde_json::Value;
 use std::error::Error;
 use std::fmt;
 
+// ----------------------------------------------------------------------------
+// Enums
+// ----------------------------------------------------------------------------
+
 pub enum SzError {
     SzBadInputError,
     SzConfigurationError,
@@ -25,55 +29,9 @@ pub enum SzError {
     SzUnrecoverableError,
 }
 
-// #[macro_export]
-// macro_rules! bad_input_error {
-//     () => {
-//         SzError::SzBadInputError | SzError::SzNotFoundError | SzError::SzUnknownDataSourceError
-//     };
-// }
-
-// #[macro_export]
-// macro_rules! general_error {
-//     () => {
-//         SzError::SzGeneralError
-//             | SzError::SzConfigurationError
-//             | SzError::SzReplaceConflictError
-//             | SzError::SzSdkError
-//     };
-// }
-
-// #[macro_export]
-// macro_rules! retryable_error {
-//     () => {
-//         SzError::SzRetryableError
-//             | SzError::SzDatabaseConnectionLostError
-//             | SzError::SzDatabaseTransientError
-//             | SzError::SzRetryTimeoutExceededError
-//     };
-// }
-
-// #[macro_export]
-// macro_rules! sz_error {
-//     () => {
-//         SzError::SzBadInputError
-//             | SzError::SzConfigurationError
-//             | SzError::SzDatabaseConnectionLostError
-//             | SzError::SzDatabaseError
-//             | SzError::SzDatabaseTransientError
-//             | SzError::SzError
-//             | SzError::SzGeneralError
-//             | SzError::SzLicenseError
-//             | SzError::SzNotFoundError
-//             | SzError::SzNotInitializedError
-//             | SzError::SzReplaceConflictError
-//             | SzError::SzRetryableError
-//             | SzError::SzRetryTimeoutExceededError
-//             | SzError::SzSdkError
-//             | SzError::SzUnhandledError
-//             | SzError::SzUnknownDataSourceError
-//             | SzError::SzUnrecoverableError
-//     };
-// }
+// ----------------------------------------------------------------------------
+// Macros
+// ----------------------------------------------------------------------------
 
 #[macro_export]
 macro_rules! senzing_error_type {
@@ -111,27 +69,14 @@ macro_rules! senzing_error_type {
     };
 }
 
-#[macro_export]
-macro_rules! unrecoverable_error {
-    () => {
-        SzError::SzUnrecoverableError
-            | SzError::SzDatabaseError
-            | SzError::SzLicenseError
-            | SzError::SzNotInitializedError
-            | SzError::SzUnhandledError
-    };
-}
+// ----------------------------------------------------------------------------
+// SenzingError
+// ----------------------------------------------------------------------------
 
 /// A Senzing-specific error extracted from a gRPC error response.
 #[derive(Debug)]
 pub struct SenzingError {
     message: String,
-}
-
-impl fmt::Display for SenzingError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "SenzingError: {}", self.message)
-    }
 }
 
 /// Builds a SenzingError from any type that can be converted to a string.
@@ -155,6 +100,10 @@ pub fn build_senzing_error(error: impl ToString) -> SenzingError {
     }
 }
 
+// ----------------------------------------------------------------------------
+// SenzingError - methods
+// ----------------------------------------------------------------------------
+
 impl SenzingError {
     /// Extracts the "reason" field from JSON embedded in the error message.
     ///
@@ -176,6 +125,12 @@ impl SenzingError {
     /// ```
     pub fn reason(&self) -> String {
         extract_reason_from_message(&self.message).unwrap_or_default()
+    }
+}
+
+impl fmt::Display for SenzingError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "SenzingError: {}", self.message)
     }
 }
 

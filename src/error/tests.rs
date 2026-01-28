@@ -1,12 +1,39 @@
 #[cfg(test)]
+#[derive(Debug, Default, PartialEq)]
+pub struct TestCase {
+    pub message: String,
+    pub id: Option<String>,
+    pub reason: Option<String>,
+    pub function: Option<String>,
+    pub error: Option<String>,
+}
+
+pub fn get_testcases() -> Vec<TestCase> {
+    vec![
+        TestCase {
+            message: "bob".to_string(),
+            ..Default::default()
+        },
+        TestCase {
+            message: "mary".to_string(),
+            ..Default::default()
+        },
+        TestCase {
+            message: r#"status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": \n{\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0057|Unknown feature ID value '1'\"}}}", metadata: {"content-type": "application/grpc"}"#.to_string(),
+            ..Default::default()
+        },
+    ]
+}
+
 mod test {
+    use super::get_testcases;
     use crate::error::SzError;
     use crate::error::{build_senzing_error, extract_reason_from_json};
     use crate::senzing_error_type;
     use serde_json::Value;
 
     #[test]
-    fn test_match() {
+    fn test_match_senzing_error_type() {
         let target = SzError::SzNotFoundError;
 
         match target {
@@ -29,13 +56,24 @@ mod test {
     }
 
     #[test]
-    fn test_match2() {
+    fn test_match_szerror() {
         let target = SzError::SzNotFoundError;
 
         match target {
             senzing_error_type!(SzError::SzError) => {
                 println!("\n>>>>>>match: Is SzError")
             }
+        }
+    }
+
+    #[test]
+    fn test_loop() {
+        let test_cases = get_testcases();
+        for test_case in test_cases {
+            println!(
+                "message: {}, reason: {:?}",
+                test_case.message, test_case.reason
+            );
         }
     }
 

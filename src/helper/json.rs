@@ -16,7 +16,10 @@
 /// * `true` if the string is valid JSON
 /// * `false` otherwise
 pub fn is_valid_json(s: String) -> bool {
+    let debug = false;
     let result = serde_json::from_str::<serde_json::Value>(&s).is_ok();
-    println!("\n>>>>>> is_valid_json: {:?}; JSON: {:?}", result, s);
+    if debug {
+        println!("\n>>>>>> is_valid_json: {:?}; JSON: {:?}", result, s);
+    }
     result
 }

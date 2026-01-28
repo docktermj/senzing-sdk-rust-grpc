@@ -33,7 +33,7 @@ mod test {
         let result = get_szdiagnostic().get_feature(1);
         if let Err(e) = &result {
             let message = e.to_string();
-            println!(">>>bob>>>: {}", message);
+            println!(">>>>>> Error message: |{}|", message);
         }
         if let Err(e) = result.as_ref() {
             let senzing_error = build_senzing_error(e);
