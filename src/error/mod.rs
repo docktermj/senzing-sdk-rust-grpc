@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests;
 
+pub mod errortypes;
+
 use serde_json::Value;
 use std::error::Error;
 use std::fmt;
@@ -9,7 +11,7 @@ use std::fmt;
 // Enums
 // ----------------------------------------------------------------------------
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SzError {
     SzBadInputError,
     SzConfigurationError,
@@ -198,6 +200,7 @@ macro_rules! senzing_error_type3 {
 #[derive(Debug)]
 pub struct SenzingError {
     message: String,
+    json: Option<String>,
 }
 
 /// Builds a SenzingError from any type that can be converted to a string.
@@ -216,9 +219,9 @@ pub struct SenzingError {
 /// let senzing_err = build_senzing_error("error message");
 /// ```
 pub fn build_senzing_error(error: impl ToString) -> SenzingError {
-    SenzingError {
-        message: error.to_string(),
-    }
+    let message = error.to_string();
+    let json = extract_json_from_message(&message);
+    SenzingError { message, json }
 }
 
 // ----------------------------------------------------------------------------
@@ -245,7 +248,37 @@ impl SenzingError {
     /// assert_eq!(error.reason(), "SZSDK00010001");
     /// ```
     pub fn reason(&self) -> String {
-        extract_reason_from_message(&self.message).unwrap_or_default()
+        self.json
+            .as_ref()
+            .and_then(|json_str| serde_json::from_str::<Value>(json_str).ok())
+            .and_then(|json_value| extract_reason_from_json(&json_value))
+            .unwrap_or_default()
+    }
+
+    /// Extracts the error type from JSON embedded in the error message.
+    ///
+    /// This method extracts the reason from the JSON, parses the error ID from
+    /// the reason string (format "SENZNNNN|description"), and looks up the
+    /// corresponding `SzError` type.
+    ///
+    /// # Returns
+    ///
+    /// * `Some(SzError)` if a valid error type was found
+    /// * `None` if the error type could not be determined
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// let error = build_senzing_error(r#"{"reason": "SENZ0060|Unknown feature ID"}"#);
+    /// assert_eq!(error.error_type(), Some(SzError::SzConfigurationError));
+    /// ```
+    pub fn error_type(&self) -> Option<SzError> {
+        self.json
+            .as_ref()
+            .and_then(|json_str| serde_json::from_str::<Value>(json_str).ok())
+            .and_then(|json_value| extract_reason_from_json(&json_value))
+            .and_then(|reason| extract_error_id_from_reason(&reason))
+            .and_then(get_error_type_for_error_id)
     }
 }
 
@@ -257,10 +290,10 @@ impl fmt::Display for SenzingError {
 
 impl Error for SenzingError {}
 
-/// Extracts the "reason" field from an error message containing JSON.
+/// Extracts JSON from an error message.
 ///
-/// This function looks for JSON in the error message and attempts to extract
-/// the "reason" field from it. It handles both direct JSON and escaped JSON strings.
+/// This function looks for JSON in the error message and returns it as a string.
+/// It handles both direct JSON and escaped JSON strings (e.g., in gRPC "self:" fields).
 ///
 /// # Arguments
 ///
@@ -268,9 +301,9 @@ impl Error for SenzingError {}
 ///
 /// # Returns
 ///
-/// * `Some(String)` if a reason field was found in the JSON
-/// * `None` if no JSON or reason field was found
-fn extract_reason_from_message(message: &str) -> Option<String> {
+/// * `Some(String)` if valid JSON was found
+/// * `None` if no valid JSON was found
+fn extract_json_from_message(message: &str) -> Option<String> {
     // Try to find and parse escaped JSON in the "self:" field
     if let Some(self_index) = message.find("self: \"") {
         let json_start = self_index + 7; // Length of "self: \""
@@ -287,11 +320,9 @@ fn extract_reason_from_message(message: &str) -> Option<String> {
                 .replace("\\n", "\n")
                 .replace("\\\\", "\\");
 
-            // Try to parse as JSON
-            if let Ok(json_value) = serde_json::from_str::<Value>(&unescaped_json)
-                && let Some(reason) = extract_reason_from_json(&json_value)
-            {
-                return Some(reason);
+            // Validate it's actually JSON
+            if serde_json::from_str::<Value>(&unescaped_json).is_ok() {
+                return Some(unescaped_json);
             }
         }
     }
@@ -300,11 +331,12 @@ fn extract_reason_from_message(message: &str) -> Option<String> {
     let brace_index = message.find('{')?;
     let json_str = &message[brace_index..];
 
-    // Try to parse as JSON
-    let json_value: Value = serde_json::from_str(json_str).ok()?;
+    // Validate it's actually JSON and return
+    if serde_json::from_str::<Value>(json_str).is_ok() {
+        return Some(json_str.to_string());
+    }
 
-    // Extract the reason field from the JSON
-    extract_reason_from_json(&json_value)
+    None
 }
 
 /// Finds the end of an escaped JSON string by looking for the closing quote.
@@ -366,6 +398,42 @@ fn extract_reason_from_json(json_value: &Value) -> Option<String> {
     }
 
     None
+}
+
+/// Extracts the error ID from a reason string.
+///
+/// The reason string is expected to be in the format "SENZNNNN|description"
+/// where NNNN is a numeric error code.
+///
+/// # Arguments
+///
+/// * `reason` - The reason string from a Senzing error
+///
+/// # Returns
+///
+/// * `Some(i32)` if a valid error ID was found
+/// * `None` if the reason string doesn't match the expected format
+///
+/// # Example
+///
+/// ```ignore
+/// let error_id = extract_error_id_from_reason("SENZ0060|Unknown feature ID");
+/// assert_eq!(error_id, Some(60));
+/// ```
+fn extract_error_id_from_reason(reason: &str) -> Option<i32> {
+    // Check if reason starts with "SENZ"
+    let after_prefix = reason.strip_prefix("SENZ")?;
+
+    // Find the position of '|' which separates the code from the description
+    let pipe_pos = after_prefix.find('|')?;
+
+    // Extract the numeric part and parse it
+    let code_str = &after_prefix[..pipe_pos];
+    code_str.parse::<i32>().ok()
+}
+
+fn get_error_type_for_error_id(error_id: i32) -> Option<SzError> {
+    errortypes::SZ_ERROR_TYPES.get(&error_id).copied()
 }
 
 // fn try_thing() -> SzError {

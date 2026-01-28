@@ -9,7 +9,8 @@ pub struct TestCase {
     pub reason: Option<String>,
     pub function: Option<String>,
     pub error: Option<String>,
-    pub errortype: Option<SzError>,
+    pub error_type: Option<SzError>,
+    pub error_id: Option<i32>,
 }
 
 pub fn get_testcases() -> Vec<TestCase> {
@@ -25,7 +26,8 @@ pub fn get_testcases() -> Vec<TestCase> {
         TestCase {
             message: r#"status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": \n{\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0060|Unknown feature ID value '1'\"}}}", metadata: {"content-type": "application/grpc"}"#.to_string(),
             reason: Some("SENZ0060|Unknown feature ID value '1'".to_string()),
-            errortype: Some(SzError::SzConfigurationError),
+            error_type: Some(SzError::SzConfigurationError),
+            error_id: Some(60),
             ..Default::default()
         },
     ]
@@ -142,6 +144,17 @@ mod test {
             let senzing_error = build_senzing_error(&testcase.message);
             if let Some(reason) = testcase.reason {
                 assert_eq!(reason, senzing_error.reason())
+            }
+        }
+    }
+
+    #[test]
+    fn test_senzing_error_types() {
+        let testcases = get_testcases();
+        for testcase in testcases {
+            let senzing_error = build_senzing_error(&testcase.message);
+            if let Some(error_type) = testcase.error_type {
+                assert_eq!(error_type, senzing_error.error_type().unwrap())
             }
         }
     }
