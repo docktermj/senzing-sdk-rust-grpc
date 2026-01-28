@@ -4,8 +4,8 @@ use super::szdiagnostic_y;
 mod test {
 
     use super::szdiagnostic_y::sz_diagnostic_client::SzDiagnosticClient;
+    use crate::error::build_senzing_error;
     use crate::helper::create_grpc_channel_blocking;
-    use crate::helper::error::build_senzing_error;
     use crate::helper::json::is_valid_json;
     use crate::helper::runtime::build_runtime;
 
