@@ -9,6 +9,7 @@ use std::fmt;
 // Enums
 // ----------------------------------------------------------------------------
 
+#[derive(Debug, PartialEq)]
 pub enum SzError {
     SzBadInputError,
     SzConfigurationError,
@@ -31,10 +32,11 @@ pub enum SzError {
 
 // ----------------------------------------------------------------------------
 // Macros
+// - Mostly experimental
 // ----------------------------------------------------------------------------
 
 #[macro_export]
-macro_rules! senzing_error_type {
+macro_rules! senzing_error_type1 {
     (SzError::SzBadInputError) => {
         SzError::SzBadInputError | SzError::SzNotFoundError | SzError::SzUnknownDataSourceError
     };
@@ -68,6 +70,125 @@ macro_rules! senzing_error_type {
         )
     };
 }
+
+#[macro_export]
+macro_rules! senzing_error_type2 {
+    (SzError::SzBadInputError, $value:expr) => {
+        [
+            SzError::SzBadInputError,
+            SzError::SzNotFoundError,
+            SzError::SzUnknownDataSourceError,
+        ]
+        .contains(&$value)
+    };
+    (SzError::SzGeneralError, $value:expr) => {
+        [
+            SzError::SzGeneralError,
+            SzError::SzConfigurationError,
+            SzError::SzReplaceConflictError,
+            SzError::SzSdkError,
+        ]
+        .contains(&$value)
+    };
+    (SzError::SzRetryableError, $value:expr) => {
+        [
+            SzError::SzRetryableError,
+            SzError::SzDatabaseConnectionLostError,
+            SzError::SzDatabaseTransientError,
+            SzError::SzRetryTimeoutExceededError,
+        ]
+        .contains(&$value)
+    };
+    (SzError::SzUnrecoverableError, $value:expr) => {
+        [
+            SzError::SzUnrecoverableError,
+            SzError::SzDatabaseError,
+            SzError::SzLicenseError,
+            SzError::SzNotInitializedError,
+            SzError::SzUnhandledError,
+        ]
+        .contains(&$value)
+    };
+    (SzError::SzError, $value:expr) => {
+        [
+            SzError::SzBadInputError,
+            SzError::SzConfigurationError,
+            SzError::SzDatabaseConnectionLostError,
+            SzError::SzDatabaseError,
+            SzError::SzDatabaseTransientError,
+            SzError::SzError,
+            SzError::SzGeneralError,
+            SzError::SzLicenseError,
+            SzError::SzNotFoundError,
+            SzError::SzNotInitializedError,
+            SzError::SzReplaceConflictError,
+            SzError::SzRetryableError,
+            SzError::SzRetryTimeoutExceededError,
+            SzError::SzSdkError,
+            SzError::SzUnhandledError,
+            SzError::SzUnknownDataSourceError,
+            SzError::SzUnrecoverableError,
+        ]
+        .contains(&$value)
+    };
+    ($other:pat, $value:expr) => {
+        compile_error!(
+            "senzing_error_type2! only accepts: SzError::SzBadInputError, SzError::SzGeneralError, SzError::SzRetryableError, SzError::SzUnrecoverableError, or SzError::SzError"
+        )
+    };
+}
+
+#[macro_export]
+macro_rules! senzing_error_type3 {
+    (SzError::SzBadInputError) => {
+        [SzError::SzBadInputError, SzError::SzNotFoundError, SzError::SzUnknownDataSourceError]
+    };
+    (SzError::SzGeneralError) => {
+        [SzError::SzGeneralError, SzError::SzConfigurationError, SzError::SzReplaceConflictError, SzError::SzSdkError]
+    };
+    (SzError::SzRetryableError) => {
+        [SzError::SzRetryableError, SzError::SzDatabaseConnectionLostError, SzError::SzDatabaseTransientError, SzError::SzRetryTimeoutExceededError]
+    };
+    (SzError::SzUnrecoverableError) => {
+        [SzError::SzUnrecoverableError, SzError::SzDatabaseError, SzError::SzLicenseError, SzError::SzNotInitializedError, SzError::SzUnhandledError]
+    };
+    // FIXME: This match arm also process non-SzError errors.
+    // It needs to match only SzError errors.
+    (SzError::SzError) => {
+        _
+    };
+    ($other:pat) => {
+        compile_error!(
+            "senzing_error_type! only accepts: SzError::SzBadInputError, SzError::SzGeneralError, SzError::SzRetryableError, SzError::SzUnrecoverableError, or SzError::SzError"
+        )
+    };
+}
+
+// #[macro_export]
+// macro_rules! senzing_error_type4 {
+//     (SzError::SzBadInputError) => {
+//         x if [SzError::SzBadInputError, SzError::SzNotFoundError, SzError::SzUnknownDataSourceError].contains(&x)
+//     };
+//     (SzError::SzGeneralError) => {
+//         x if [SzError::SzGeneralError, SzError::SzConfigurationError, SzError::SzReplaceConflictError, SzError::SzSdkError].contains(&x)
+//     };
+//     (SzError::SzRetryableError) => {
+//         x if [SzError::SzRetryableError, SzError::SzDatabaseConnectionLostError, SzError::SzDatabaseTransientError, SzError::SzRetryTimeoutExceededError].contains(&x)
+//     };
+//     (SzError::SzUnrecoverableError) => {
+//         x if [SzError::SzUnrecoverableError, SzError::SzDatabaseError, SzError::SzLicenseError, SzError::SzNotInitializedError, SzError::SzUnhandledError].contains(&x)
+//     };
+//     // FIXME: This match arm also process non-SzError errors.
+//     // It needs to match only SzError errors.
+//     (SzError::SzError) => {
+//         _
+//     };
+//     ($other:pat) => {
+//         compile_error!(
+//             "senzing_error_type! only accepts: SzError::SzBadInputError, SzError::SzGeneralError, SzError::SzRetryableError, SzError::SzUnrecoverableError, or SzError::SzError"
+//         )
+//     };
+// }
 
 // ----------------------------------------------------------------------------
 // SenzingError
