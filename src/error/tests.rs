@@ -271,6 +271,47 @@ mod test {
         }
     }
 
+    #[test]
+    fn test_senzing_error_types3() {
+        let testcases = get_testcases();
+        for testcase in testcases {
+            println!("{}", testcase.name);
+            if let Some(error_type) = testcase.error_type {
+                println!("    expected error_type: {:?}", error_type);
+                let senzing_result = mock_senzing_function(testcase.message);
+                match senzing_result {
+                    Ok(senzing_string) => {
+                        println!("    string: {}", senzing_string);
+                    }
+                    Err(senzing_error) => {
+                        match build_senzing_error_from_err(senzing_error).error_type() {
+                            Some(senzing_error_type1!(SzError::SzBadInputError)) => {
+                                println!(">>>>>> match1: Is SzBadInputError")
+                            }
+                            Some(senzing_error_type1!(SzError::SzGeneralError)) => {
+                                println!(">>>>>> match1: Is SzGeneralError")
+                            }
+                            Some(senzing_error_type1!(SzError::SzRetryableError)) => {
+                                println!(">>>>>> match1: Is SzRecoverableError")
+                            }
+                            Some(senzing_error_type1!(SzError::SzUnrecoverableError)) => {
+                                println!(">>>>>> match1: Is SzUnrecoverableError")
+                            }
+                            None => {
+                                println!(">>>>>> match1: Is None")
+                            }
+                            senzing_error_type1!(SzError::SzError) => {
+                                println!(">>>>>> match1: Is SzError")
+                            }
+                        }
+                    }
+                }
+            } else {
+                println!("    ignored");
+            }
+        }
+    }
+
     // #[test]
     // fn test_senzing_error_types() {
     //     let testcases = get_testcases();
