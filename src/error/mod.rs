@@ -3,7 +3,6 @@ mod tests;
 
 pub mod errortypes;
 
-use futures::stream::TryChunksError;
 use serde_json::Value;
 use std::error::Error;
 use std::fmt;
@@ -281,6 +280,12 @@ pub struct SenzingError {
 /// let senzing_err = build_senzing_error("error message");
 /// ```
 pub fn build_senzing_error(error: impl ToString) -> SenzingError {
+    let message = error.to_string();
+    let json = extract_json_from_message(&message);
+    SenzingError { message, json }
+}
+
+pub fn build_senzing_error_from_err(error: Box<dyn std::error::Error>) -> SenzingError {
     let message = error.to_string();
     let json = extract_json_from_message(&message);
     SenzingError { message, json }

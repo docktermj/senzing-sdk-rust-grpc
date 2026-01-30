@@ -67,10 +67,20 @@ pub fn get_testcases() -> Vec<TestCase> {
     ]
 }
 
+pub fn mock_senzing_function(message: String) -> Result<String, Box<dyn std::error::Error>> {
+    Err(Box::new(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        message,
+    )))
+}
+
 mod test {
-    use super::get_testcases;
+    use super::{get_testcases, mock_senzing_function};
     use crate::error::SzError;
-    use crate::error::{build_senzing_error, extract_reason_from_json, is_senzing_error_type};
+    use crate::error::{
+        build_senzing_error, build_senzing_error_from_err, extract_reason_from_json,
+        is_senzing_error_type,
+    };
     use crate::senzing_error_type1;
     use crate::senzing_error_type2;
     use crate::senzing_error_type3;
@@ -145,28 +155,31 @@ mod test {
         }
     }
 
-    // #[test]
-    // fn test_match_senzing_error_type4() {
-    //     let target = SzError::SzNotFoundError;
+    #[test]
+    fn test_match_senzing_error_type4() {
+        let target = SzError::SzNotFoundError;
 
-    //     match target {
-    //         x if is_senzing_error_type(x, SzError::SzBadInputError) => {
-    //             println!(">>>>>> match: Is SzBadInputError")
-    //         }
-    //         x if is_senzing_error_type(x, SzError::SzGeneralError) => {
-    //             println!(">>>>>> match: Is SzGeneralError")
-    //         }
-    //         x if is_senzing_error_type(x, SzError::SzRetryableError) => {
-    //             println!(">>>>>> match: Is SzRecoverableError")
-    //         }
-    //         x if is_senzing_error_type(x, SzError::SzUnrecoverableError) => {
-    //             println!(">>>>>> match: Is SzUnrecoverableError")
-    //         }
-    //         x if is_senzing_error_type(x, SzError::SzError) => {
-    //             println!(">>>>>> match: Is SzError")
-    //         }
-    //     }
-    // }
+        match target {
+            x if is_senzing_error_type(x, SzError::SzBadInputError) => {
+                println!(">>>>>> match: Is SzBadInputError")
+            }
+            x if is_senzing_error_type(x, SzError::SzGeneralError) => {
+                println!(">>>>>> match: Is SzGeneralError")
+            }
+            x if is_senzing_error_type(x, SzError::SzRetryableError) => {
+                println!(">>>>>> match: Is SzRecoverableError")
+            }
+            x if is_senzing_error_type(x, SzError::SzUnrecoverableError) => {
+                println!(">>>>>> match: Is SzUnrecoverableError")
+            }
+            x if is_senzing_error_type(x, SzError::SzError) => {
+                println!(">>>>>> match: Is SzError")
+            }
+            _ => {
+                println!(">>>>>> match: All other errors")
+            }
+        }
+    }
 
     // ------------------------------------------------------------------------
     // Test...
@@ -210,6 +223,44 @@ mod test {
                         assert_ne!(error_type, senzing_error_type)
                     } else {
                         assert_eq!(error_type, senzing_error_type)
+                    }
+                } else {
+                    println!("    error_type() returned None");
+                }
+            } else {
+                println!("    ignored");
+            }
+        }
+    }
+
+    #[test]
+    fn test_senzing_error_types2() {
+        let testcases = get_testcases();
+        for testcase in testcases {
+            println!("{}", testcase.name);
+            if let Some(error_type) = testcase.error_type {
+                println!("    expected error_type: {:?}", error_type);
+                let senzing_result = mock_senzing_function(testcase.message);
+                if let Err(e) = senzing_result {
+                    let senzing_error = build_senzing_error_from_err(e);
+                    if let Some(sz) = senzing_error.error_type() {
+                        match sz {
+                            senzing_error_type1!(SzError::SzBadInputError) => {
+                                println!(">>>>>> match1: Is SzBadInputError")
+                            }
+                            senzing_error_type1!(SzError::SzGeneralError) => {
+                                println!(">>>>>> match1: Is SzGeneralError")
+                            }
+                            senzing_error_type1!(SzError::SzRetryableError) => {
+                                println!(">>>>>> match1: Is SzRecoverableError")
+                            }
+                            senzing_error_type1!(SzError::SzUnrecoverableError) => {
+                                println!(">>>>>> match1: Is SzUnrecoverableError")
+                            }
+                            senzing_error_type1!(SzError::SzError) => {
+                                println!(">>>>>> match1: Is SzError")
+                            }
+                        }
                     }
                 } else {
                     println!("    error_type() returned None");
