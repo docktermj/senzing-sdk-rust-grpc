@@ -3,6 +3,7 @@ mod tests;
 
 pub mod errortypes;
 
+use futures::stream::TryChunksError;
 use serde_json::Value;
 use std::error::Error;
 use std::fmt;
@@ -192,6 +193,67 @@ macro_rules! senzing_error_type3 {
 //     };
 // }
 
+#[macro_export]
+macro_rules! senzing_error_type5 {
+    (SzError::SzBadInputError) => {
+        [
+            SzError::SzBadInputError,
+            SzError::SzNotFoundError,
+            SzError::SzUnknownDataSourceError,
+        ]
+    };
+    (SzError::SzGeneralError) => {
+        [
+            SzError::SzGeneralError,
+            SzError::SzConfigurationError,
+            SzError::SzReplaceConflictError,
+            SzError::SzSdkError,
+        ]
+    };
+    (SzError::SzRetryableError) => {
+        [
+            SzError::SzRetryableError,
+            SzError::SzDatabaseConnectionLostError,
+            SzError::SzDatabaseTransientError,
+            SzError::SzRetryTimeoutExceededError,
+        ]
+    };
+    (SzError::SzUnrecoverableError) => {
+        [
+            SzError::SzUnrecoverableError,
+            SzError::SzDatabaseError,
+            SzError::SzLicenseError,
+            SzError::SzNotInitializedError,
+            SzError::SzUnhandledError,
+        ]
+    };
+    (SzError::SzError) => {
+        [
+            SzError::SzBadInputError,
+            SzError::SzConfigurationError,
+            SzError::SzDatabaseConnectionLostError,
+            SzError::SzDatabaseError,
+            SzError::SzDatabaseTransientError,
+            SzError::SzError,
+            SzError::SzGeneralError,
+            SzError::SzLicenseError,
+            SzError::SzNotFoundError,
+            SzError::SzNotInitializedError,
+            SzError::SzReplaceConflictError,
+            SzError::SzRetryableError,
+            SzError::SzRetryTimeoutExceededError,
+            SzError::SzSdkError,
+            SzError::SzUnhandledError,
+            SzError::SzUnknownDataSourceError,
+            SzError::SzUnrecoverableError,
+        ]
+    }; // ($other:pat) => {
+       //     compile_error!(
+       //         "senzing_error_type! only accepts: SzError::SzBadInputError, SzError::SzGeneralError, SzError::SzRetryableError, SzError::SzUnrecoverableError, or SzError::SzError"
+       //     )
+       // };
+}
+
 // ----------------------------------------------------------------------------
 // SenzingError
 // ----------------------------------------------------------------------------
@@ -237,7 +299,8 @@ impl SenzingError {
     ///
     /// # Returns
     ///
-    /// The reason string if found, otherwise an empty string.
+    /// * `Some(String)` if a "reason" field was found
+    /// * `None` if no "reason" field exists
     ///
     /// # Example
     ///
@@ -245,14 +308,13 @@ impl SenzingError {
     /// let error = build_senzing_error(Box::new(std::io::Error::other(
     ///     r#"rpc error: code = Unknown desc = {"reason": "SZSDK00010001"}"#
     /// )));
-    /// assert_eq!(error.reason(), "SZSDK00010001");
+    /// assert_eq!(error.reason(), Some("SZSDK00010001".to_string()));
     /// ```
-    pub fn reason(&self) -> String {
+    pub fn reason(&self) -> Option<String> {
         self.json
             .as_ref()
             .and_then(|json_str| serde_json::from_str::<Value>(json_str).ok())
             .and_then(|json_value| extract_reason_from_json(&json_value))
-            .unwrap_or_default()
     }
 
     /// Extracts the error type from JSON embedded in the error message.
@@ -434,6 +496,69 @@ fn extract_error_id_from_reason(reason: &str) -> Option<i32> {
 
 fn get_error_type_for_error_id(error_id: i32) -> Option<SzError> {
     errortypes::SZ_ERROR_TYPES.get(&error_id).copied()
+}
+
+fn is_senzing_error_type(needle: SzError, haystack: SzError) -> bool {
+    let hay: &[SzError] = match haystack {
+        SzError::SzError => &[
+            SzError::SzBadInputError,
+            SzError::SzConfigurationError,
+            SzError::SzDatabaseConnectionLostError,
+            SzError::SzDatabaseError,
+            SzError::SzDatabaseTransientError,
+            SzError::SzError,
+            SzError::SzGeneralError,
+            SzError::SzLicenseError,
+            SzError::SzNotFoundError,
+            SzError::SzNotInitializedError,
+            SzError::SzReplaceConflictError,
+            SzError::SzRetryableError,
+            SzError::SzRetryTimeoutExceededError,
+            SzError::SzSdkError,
+            SzError::SzUnhandledError,
+            SzError::SzUnknownDataSourceError,
+            SzError::SzUnrecoverableError,
+        ],
+        SzError::SzBadInputError => &[
+            SzError::SzBadInputError,
+            SzError::SzNotFoundError,
+            SzError::SzUnknownDataSourceError,
+        ],
+        SzError::SzConfigurationError => &[SzError::SzConfigurationError],
+        SzError::SzDatabaseConnectionLostError => &[SzError::SzDatabaseConnectionLostError],
+        SzError::SzDatabaseError => &[SzError::SzDatabaseError],
+        SzError::SzDatabaseTransientError => &[SzError::SzDatabaseTransientError],
+
+        SzError::SzGeneralError => &[
+            SzError::SzGeneralError,
+            SzError::SzConfigurationError,
+            SzError::SzReplaceConflictError,
+            SzError::SzSdkError,
+        ],
+        SzError::SzLicenseError => &[SzError::SzLicenseError],
+        SzError::SzNotFoundError => &[SzError::SzNotFoundError],
+        SzError::SzNotInitializedError => &[SzError::SzNotInitializedError],
+        SzError::SzReplaceConflictError => &[SzError::SzReplaceConflictError],
+        SzError::SzRetryableError => &[
+            SzError::SzRetryableError,
+            SzError::SzDatabaseConnectionLostError,
+            SzError::SzDatabaseTransientError,
+            SzError::SzRetryTimeoutExceededError,
+        ],
+        SzError::SzRetryTimeoutExceededError => &[SzError::SzRetryTimeoutExceededError],
+        SzError::SzSdkError => &[SzError::SzSdkError],
+        SzError::SzUnhandledError => &[SzError::SzUnhandledError],
+        SzError::SzUnknownDataSourceError => &[SzError::SzUnknownDataSourceError],
+        SzError::SzUnrecoverableError => &[
+            SzError::SzUnrecoverableError,
+            SzError::SzDatabaseError,
+            SzError::SzLicenseError,
+            SzError::SzNotInitializedError,
+            SzError::SzUnhandledError,
+        ],
+    };
+
+    hay.contains(&needle)
 }
 
 // fn try_thing() -> SzError {

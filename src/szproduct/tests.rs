@@ -3,9 +3,9 @@ use super::szproduct_y;
 #[cfg(test)]
 mod test {
     use super::szproduct_y::sz_product_client::SzProductClient;
-    use crate::helper::create_grpc_channel_blocking;
-    use crate::helper::json::is_valid_json;
-    use crate::helper::runtime::build_runtime;
+    use crate::helpers::create_grpc_channel_blocking;
+    use crate::helpers::json::is_valid_json;
+    use crate::helpers::runtime::build_runtime;
     use std::sync::Arc;
     use tonic::transport::Channel;
 

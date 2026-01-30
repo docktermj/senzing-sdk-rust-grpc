@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod test {
-    use crate::helper::json::is_valid_json;
-    use crate::helper::runtime::build_runtime;
-    use crate::helper::{create_grpc_channel, create_grpc_channel_blocking};
+    use crate::helpers::json::is_valid_json;
+    use crate::helpers::runtime::build_runtime;
+    use crate::helpers::{create_grpc_channel, create_grpc_channel_blocking};
     use crate::szabstractfactory::szabstractfactory_y::{self};
     use crate::traits::{SzAbstractFactory, SzDiagnostic, SzProduct};
 

@@ -23,5 +23,8 @@ futures = "0.3.31"
 pkcs8 = { version = "0.10", features = ["encryption", "pem"] }
 phf = { version = "0.11", features = ["macros"] }
 
+[dev-dependencies]
+stdext = "0.3"
+
 [build-dependencies]
 tonic-prost-build = "*"

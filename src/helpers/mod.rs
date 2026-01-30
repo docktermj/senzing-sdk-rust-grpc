@@ -11,6 +11,7 @@ pub mod isdestroyed;
 #[cfg(test)]
 pub mod json;
 pub mod runtime;
+pub mod short_function_name;
 mod transport_credentials;
 
 pub use constants::*;
