@@ -270,12 +270,6 @@ pub fn as_senzing_error(error: impl ToString) -> SenzingError {
     SenzingError { message, json }
 }
 
-// pub fn as_senzing_error_from_err(error: Box<dyn std::error::Error>) -> SenzingError {
-//     let message = error.to_string();
-//     let json = extract_json_from_message(&message);
-//     SenzingError { message, json }
-// }
-
 // ----------------------------------------------------------------------------
 // SenzingError - methods
 // ----------------------------------------------------------------------------
@@ -511,7 +505,3 @@ fn extract_error_id_from_reason(reason: &str) -> Option<i32> {
 fn get_error_type_for_error_id(error_id: i32) -> Option<SzError> {
     errortypes::SZ_ERROR_TYPES.get(&error_id).copied()
 }
-
-// fn try_thing() -> SzError {
-//     SzError::SzBadInputError
-// }

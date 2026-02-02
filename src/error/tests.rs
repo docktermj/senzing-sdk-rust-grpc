@@ -20,18 +20,18 @@ pub struct TestCase {
 pub fn get_testcases() -> Vec<TestCase> {
     vec![
         TestCase {
-            name: "None",
+            name: "No tests",
             not_a_senzing_error: true,
             ..Default::default()
         },
         TestCase {
-            name: "Empty message, No reason",
+            name: "Empty message and no reason",
             error_message: Some("".to_string()),
             not_a_senzing_error: true,
             ..Default::default()
         },
         TestCase {
-            name: "Empty message, empty reason",
+            name: "Empty message and empty reason",
             error_message: Some("".to_string()),
             reason: Some("".to_string()),
             not_a_senzing_error: true,
@@ -54,14 +54,12 @@ pub fn get_testcases() -> Vec<TestCase> {
         TestCase {
             name: "Reason in no json",
             error_message: Some("rpc error: code = Unknown desc = plain text error".to_string()),
-            reason: Some("SZSDK00020002".to_string()),
             not_a_senzing_error: true,
             ..Default::default()
         },
         TestCase {
             name: "Reason json without reason field",
             error_message: Some(r#"rpc error: code = Unknown desc = {"message": "something went wrong"}"#.to_string()),
-            reason: Some("SZSDK00020002".to_string()),
             not_a_senzing_error: true,
             ..Default::default()
         },
@@ -209,31 +207,31 @@ mod test {
         }
     }
 
-    // #[test]
-    // fn test_match_senzing_error_type4() {
-    //     let target = SzError::SzNotFoundError;
+    #[test]
+    fn test_match_senzing_error_type4() {
+        let target = as_senzing_error("".to_string());
 
-    //     match target {
-    //         x if is_senzing_error_type(x, SzError::SzBadInputError) => {
-    //             println!(">>>>>> match: Is SzBadInputError")
-    //         }
-    //         x if is_senzing_error_type(x, SzError::SzGeneralError) => {
-    //             println!(">>>>>> match: Is SzGeneralError")
-    //         }
-    //         x if is_senzing_error_type(x, SzError::SzRetryableError) => {
-    //             println!(">>>>>> match: Is SzRecoverableError")
-    //         }
-    //         x if is_senzing_error_type(x, SzError::SzUnrecoverableError) => {
-    //             println!(">>>>>> match: Is SzUnrecoverableError")
-    //         }
-    //         x if is_senzing_error_type(x, SzError::SzError) => {
-    //             println!(">>>>>> match: Is SzError")
-    //         }
-    //         _ => {
-    //             println!(">>>>>> match: All other errors")
-    //         }
-    //     }
-    // }
+        match target {
+            x if x.is_error_type(SzError::SzBadInputError) => {
+                println!(">>>>>> match: Is SzBadInputError")
+            }
+            x if x.is_error_type(SzError::SzGeneralError) => {
+                println!(">>>>>> match: Is SzGeneralError")
+            }
+            x if x.is_error_type(SzError::SzRetryableError) => {
+                println!(">>>>>> match: Is SzRecoverableError")
+            }
+            x if x.is_error_type(SzError::SzUnrecoverableError) => {
+                println!(">>>>>> match: Is SzUnrecoverableError")
+            }
+            x if x.is_error_type(SzError::SzError) => {
+                println!(">>>>>> match: Is SzError")
+            }
+            _ => {
+                println!(">>>>>> match: All other errors")
+            }
+        }
+    }
 
     // ------------------------------------------------------------------------
     // Using as_senzing_error()
@@ -527,50 +525,6 @@ mod test {
         }
     }
 
-    // #[test]
-    // fn test_senzing_error_types() {
-    //     let testcases = get_testcases();
-    //     for testcase in testcases {
-    //         let senzing_error = build_senzing_error(&testcase.message);
-    //         if let Some(errortype) = testcase.errortype {
-    //             assert_eq!(errortype, senzing_error.error_type())
-    //         }
-    //     }
-    // }
-
-    // ------------------------------------------------------------------------
-    // Using mock_senzing_function()
-    // ------------------------------------------------------------------------
-
-    // #[test]
-    // fn test_reason_from_direct_json() {
-    //     let error =
-    //         as_senzing_error(r#"rpc error: code = Unknown desc = {"reason": "SZSDK00010001"}"#);
-    //     assert_eq!(error.reason(), Some("SZSDK00010001".to_string()));
-    // }
-
-    // #[test]
-    // fn test_reason_from_nested_json() {
-    //     let error = as_senzing_error(
-    //         r#"rpc error: code = Unknown desc = {"error": {"reason": "SZSDK00020002"}}"#,
-    //     );
-    //     assert_eq!(error.reason(), Some("SZSDK00020002".to_string()));
-    // }
-
-    // #[test]
-    // fn test_reason_no_json() {
-    //     let error = as_senzing_error("rpc error: code = Unknown desc = plain text error");
-    //     assert_eq!(error.reason(), None);
-    // }
-
-    // #[test]
-    // fn test_reason_json_without_reason_field() {
-    //     let error = as_senzing_error(
-    //         r#"rpc error: code = Unknown desc = {"message": "something went wrong"}"#,
-    //     );
-    //     assert_eq!(error.reason(), None);
-    // }
-
     // ------------------------------------------------------------------------
     // Using serde_json for targeted tests.
     // ------------------------------------------------------------------------
@@ -616,15 +570,4 @@ mod test {
         let reason = extract_reason_from_json(&json);
         assert_eq!(reason, None);
     }
-
-    // #[test]
-    // fn test_reason_from_grpc_error_with_escaped_json() {
-    //     // This tests the actual format we see from gRPC errors with deeply nested reason
-    //     let error_msg = r#"status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": {\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0057|Unknown feature ID value '1'\"}}}", metadata: {"content-type": "application/grpc"}"#;
-    //     let error = as_senzing_error(error_msg);
-    //     assert_eq!(
-    //         error.reason(),
-    //         Some("SENZ0057|Unknown feature ID value '1'".to_string())
-    //     );
-    // }
 }
