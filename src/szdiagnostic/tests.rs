@@ -4,7 +4,7 @@ use super::szdiagnostic_y;
 mod test {
 
     use super::szdiagnostic_y::sz_diagnostic_client::SzDiagnosticClient;
-    use crate::error::build_senzing_error;
+    use crate::error::as_senzing_error;
     use crate::helpers::create_grpc_channel_blocking;
     use crate::helpers::json::is_valid_json;
     use crate::helpers::runtime::build_runtime;
@@ -36,7 +36,7 @@ mod test {
             println!(">>>>>> get_feature message: |{}|", message);
         }
         if let Err(e) = result.as_ref() {
-            let senzing_error = build_senzing_error(e);
+            let senzing_error = as_senzing_error(e);
             // Verify we can extract the reason from the error
             if let Some(reason) = senzing_error.reason() {
                 println!(">>>>>> get_feature reason: {}", reason);

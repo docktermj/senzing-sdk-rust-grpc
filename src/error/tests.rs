@@ -68,19 +68,13 @@ pub fn get_testcases() -> Vec<TestCase> {
 }
 
 pub fn mock_senzing_function(message: String) -> Result<String, Box<dyn std::error::Error>> {
-    Err(Box::new(std::io::Error::new(
-        std::io::ErrorKind::Other,
-        message,
-    )))
+    Err(Box::new(std::io::Error::other(message)))
 }
 
 mod test {
     use super::{get_testcases, mock_senzing_function};
     use crate::error::SzError;
-    use crate::error::{
-        build_senzing_error, build_senzing_error_from_err, extract_reason_from_json,
-        is_senzing_error_type,
-    };
+    use crate::error::{as_senzing_error, extract_reason_from_json};
     use crate::senzing_error_type1;
     use crate::senzing_error_type2;
     use crate::senzing_error_type3;
@@ -155,31 +149,31 @@ mod test {
         }
     }
 
-    #[test]
-    fn test_match_senzing_error_type4() {
-        let target = SzError::SzNotFoundError;
+    // #[test]
+    // fn test_match_senzing_error_type4() {
+    //     let target = SzError::SzNotFoundError;
 
-        match target {
-            x if is_senzing_error_type(x, SzError::SzBadInputError) => {
-                println!(">>>>>> match: Is SzBadInputError")
-            }
-            x if is_senzing_error_type(x, SzError::SzGeneralError) => {
-                println!(">>>>>> match: Is SzGeneralError")
-            }
-            x if is_senzing_error_type(x, SzError::SzRetryableError) => {
-                println!(">>>>>> match: Is SzRecoverableError")
-            }
-            x if is_senzing_error_type(x, SzError::SzUnrecoverableError) => {
-                println!(">>>>>> match: Is SzUnrecoverableError")
-            }
-            x if is_senzing_error_type(x, SzError::SzError) => {
-                println!(">>>>>> match: Is SzError")
-            }
-            _ => {
-                println!(">>>>>> match: All other errors")
-            }
-        }
-    }
+    //     match target {
+    //         x if is_senzing_error_type(x, SzError::SzBadInputError) => {
+    //             println!(">>>>>> match: Is SzBadInputError")
+    //         }
+    //         x if is_senzing_error_type(x, SzError::SzGeneralError) => {
+    //             println!(">>>>>> match: Is SzGeneralError")
+    //         }
+    //         x if is_senzing_error_type(x, SzError::SzRetryableError) => {
+    //             println!(">>>>>> match: Is SzRecoverableError")
+    //         }
+    //         x if is_senzing_error_type(x, SzError::SzUnrecoverableError) => {
+    //             println!(">>>>>> match: Is SzUnrecoverableError")
+    //         }
+    //         x if is_senzing_error_type(x, SzError::SzError) => {
+    //             println!(">>>>>> match: Is SzError")
+    //         }
+    //         _ => {
+    //             println!(">>>>>> match: All other errors")
+    //         }
+    //     }
+    // }
 
     // ------------------------------------------------------------------------
     // Test...
@@ -192,7 +186,7 @@ mod test {
             println!("{}", testcase.name);
             if let Some(reason) = testcase.reason {
                 println!("    expected reason: {}", reason);
-                let senzing_error = build_senzing_error(testcase.message);
+                let senzing_error = as_senzing_error(testcase.message);
                 if let Some(senzing_reason) = senzing_error.reason() {
                     if testcase.should_fail {
                         println!("    negative testcase");
@@ -216,7 +210,7 @@ mod test {
             println!("{}", testcase.name);
             if let Some(error_type) = testcase.error_type {
                 println!("    expected error_type: {:?}", error_type);
-                let senzing_error = build_senzing_error(&testcase.message);
+                let senzing_error = as_senzing_error(&testcase.message);
                 if let Some(senzing_error_type) = senzing_error.error_type() {
                     if testcase.should_fail {
                         println!("    negative testcase");
@@ -233,6 +227,7 @@ mod test {
         }
     }
 
+    // This technique forces exhaustive matches of Senzing error types.
     #[test]
     fn test_senzing_error_types2() {
         let testcases = get_testcases();
@@ -242,7 +237,7 @@ mod test {
                 println!("    expected error_type: {:?}", error_type);
                 let senzing_result = mock_senzing_function(testcase.message);
                 if let Err(e) = senzing_result {
-                    let senzing_error = build_senzing_error_from_err(e);
+                    let senzing_error = as_senzing_error(e);
                     if let Some(sz) = senzing_error.error_type() {
                         match sz {
                             senzing_error_type1!(SzError::SzBadInputError) => {
@@ -271,8 +266,9 @@ mod test {
         }
     }
 
+    // This technique forces exhaustive matches of Senzing error types.
     #[test]
-    fn test_senzing_error_types3() {
+    fn test_senzing_error_types2_1() {
         let testcases = get_testcases();
         for testcase in testcases {
             println!("{}", testcase.name);
@@ -280,31 +276,67 @@ mod test {
                 println!("    expected error_type: {:?}", error_type);
                 let senzing_result = mock_senzing_function(testcase.message);
                 match senzing_result {
-                    Ok(senzing_string) => {
-                        println!("    string: {}", senzing_string);
+                    Ok(result_string) => {
+                        println!("    string: {}", result_string);
                     }
-                    Err(senzing_error) => {
-                        match build_senzing_error_from_err(senzing_error).error_type() {
-                            Some(senzing_error_type1!(SzError::SzBadInputError)) => {
-                                println!(">>>>>> match1: Is SzBadInputError")
-                            }
-                            Some(senzing_error_type1!(SzError::SzGeneralError)) => {
-                                println!(">>>>>> match1: Is SzGeneralError")
-                            }
-                            Some(senzing_error_type1!(SzError::SzRetryableError)) => {
-                                println!(">>>>>> match1: Is SzRecoverableError")
-                            }
-                            Some(senzing_error_type1!(SzError::SzUnrecoverableError)) => {
-                                println!(">>>>>> match1: Is SzUnrecoverableError")
-                            }
-                            None => {
-                                println!(">>>>>> match1: Is None")
-                            }
-                            senzing_error_type1!(SzError::SzError) => {
-                                println!(">>>>>> match1: Is SzError")
-                            }
+                    Err(result_error) => match as_senzing_error(result_error).error_type() {
+                        Some(senzing_error_type1!(SzError::SzBadInputError)) => {
+                            println!(">>>>>> match1: Is SzBadInputError")
                         }
+                        Some(senzing_error_type1!(SzError::SzGeneralError)) => {
+                            println!(">>>>>> match1: Is SzGeneralError")
+                        }
+                        Some(senzing_error_type1!(SzError::SzRetryableError)) => {
+                            println!(">>>>>> match1: Is SzRetryableError")
+                        }
+                        Some(senzing_error_type1!(SzError::SzUnrecoverableError)) => {
+                            println!(">>>>>> match1: Is SzUnrecoverableError")
+                        }
+                        Some(senzing_error_type1!(SzError::SzError)) => {
+                            println!(">>>>>> match1: Is SzError")
+                        }
+                        // Some(_) => {}
+                        None => {
+                            println!("    ignored")
+                        }
+                    },
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_senzing_error_types4() {
+        let testcases = get_testcases();
+        for testcase in testcases {
+            println!("{}", testcase.name);
+            if let Some(error_type) = testcase.error_type {
+                println!("    expected error_type: {:?}", error_type);
+                let senzing_result = mock_senzing_function(testcase.message);
+                match senzing_result {
+                    Ok(result_string) => {
+                        println!("    string: {}", result_string);
                     }
+                    Err(result_error) => match as_senzing_error(result_error) {
+                        x if x.is_error_type(SzError::SzBadInputError) => {
+                            println!(">>>>>> match1: Is SzBadInputError")
+                        }
+                        x if x.is_error_type(SzError::SzGeneralError) => {
+                            println!(">>>>>> match1: Is SzGeneralError")
+                        }
+                        x if x.is_error_type(SzError::SzRetryableError) => {
+                            println!(">>>>>> match1: Is SzRecoverableError")
+                        }
+                        x if x.is_error_type(SzError::SzUnrecoverableError) => {
+                            println!(">>>>>> match1: Is SzUnrecoverableError")
+                        }
+                        x if x.is_error_type(SzError::SzError) => {
+                            println!(">>>>>> match1: Is SzError")
+                        }
+                        _ => {
+                            println!(">>>>>> match1: Is not a Senzing error")
+                        }
+                    },
                 }
             } else {
                 println!("    ignored");
@@ -326,13 +358,13 @@ mod test {
     #[test]
     fn test_reason_from_direct_json() {
         let error =
-            build_senzing_error(r#"rpc error: code = Unknown desc = {"reason": "SZSDK00010001"}"#);
+            as_senzing_error(r#"rpc error: code = Unknown desc = {"reason": "SZSDK00010001"}"#);
         assert_eq!(error.reason(), Some("SZSDK00010001".to_string()));
     }
 
     #[test]
     fn test_reason_from_nested_json() {
-        let error = build_senzing_error(
+        let error = as_senzing_error(
             r#"rpc error: code = Unknown desc = {"error": {"reason": "SZSDK00020002"}}"#,
         );
         assert_eq!(error.reason(), Some("SZSDK00020002".to_string()));
@@ -340,13 +372,13 @@ mod test {
 
     #[test]
     fn test_reason_no_json() {
-        let error = build_senzing_error("rpc error: code = Unknown desc = plain text error");
+        let error = as_senzing_error("rpc error: code = Unknown desc = plain text error");
         assert_eq!(error.reason(), None);
     }
 
     #[test]
     fn test_reason_json_without_reason_field() {
-        let error = build_senzing_error(
+        let error = as_senzing_error(
             r#"rpc error: code = Unknown desc = {"message": "something went wrong"}"#,
         );
         assert_eq!(error.reason(), None);
@@ -398,7 +430,7 @@ mod test {
     fn test_reason_from_grpc_error_with_escaped_json() {
         // This tests the actual format we see from gRPC errors with deeply nested reason
         let error_msg = r#"status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": {\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0057|Unknown feature ID value '1'\"}}}", metadata: {"content-type": "application/grpc"}"#;
-        let error = build_senzing_error(error_msg);
+        let error = as_senzing_error(error_msg);
         assert_eq!(
             error.reason(),
             Some("SENZ0057|Unknown feature ID value '1'".to_string())
