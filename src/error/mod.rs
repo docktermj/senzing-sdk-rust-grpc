@@ -297,8 +297,8 @@ impl SenzingError {
             .and_then(get_error_type_for_error_id)
     }
 
-    pub fn is_error_type(&self, haystack: SzError) -> bool {
-        let hay: &[SzError] = match haystack {
+    pub fn is_error_type(&self, error_type: SzError) -> bool {
+        let hay: &[SzError] = match error_type {
             SzError::SzError => &[
                 SzError::SzBadInputError,
                 SzError::SzConfigurationError,

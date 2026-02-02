@@ -4,13 +4,14 @@ use crate::error::SzError;
 #[derive(Debug, Default, PartialEq)]
 pub struct TestCase {
     pub name: &'static str,
-    pub message: String,
+    pub error_id: Option<i32>,
+    pub error_message: Option<String>,
+    pub error_type: Option<SzError>,
+    pub error: Option<String>,
+    pub function: Option<String>,
     pub id: Option<String>,
     pub reason: Option<String>,
-    pub function: Option<String>,
-    pub error: Option<String>,
-    pub error_type: Option<SzError>,
-    pub error_id: Option<i32>,
+    pub return_message: Option<String>,
     pub should_fail: bool, // Defaults to false.
 }
 
@@ -18,17 +19,17 @@ pub fn get_testcases() -> Vec<TestCase> {
     vec![
         TestCase {
             name: "Empty message",
-            message: "".to_string(),
+            error_message: Some("".to_string()),
             ..Default::default()
         },
         TestCase {
             name: "No JSON message",
-            message: "No JSON message".to_string(),
+            error_message: Some("No JSON message".to_string()),
             ..Default::default()
         },
         TestCase {
             name: "SzConfigurationError",
-            message: r#"status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": \n{\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0060|Unknown feature ID value '1'\"}}}", metadata: {"content-type": "application/grpc"}"#.to_string(),
+            error_message: Some(r#"status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": \n{\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0060|Unknown feature ID value '1'\"}}}", metadata: {"content-type": "application/grpc"}"#.to_string()),
             reason: Some("SENZ0060|Unknown feature ID value '1'".to_string()),
             error_type: Some(SzError::SzConfigurationError),
             error_id: Some(60),
@@ -36,7 +37,7 @@ pub fn get_testcases() -> Vec<TestCase> {
         },
         TestCase {
             name: "SzBadInputError",
-            message: r#"{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"function":"szengineserver.(*SzEngineServer).ExportCsvEntityReport","error":{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"id":"SZSDK60044007","reason":"SENZ3131|Invalid column [BAD] requested for CSV export."}}}}"#.to_string(),
+            error_message: Some(r#"{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"function":"szengineserver.(*SzEngineServer).ExportCsvEntityReport","error":{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"id":"SZSDK60044007","reason":"SENZ3131|Invalid column [BAD] requested for CSV export."}}}}"#.to_string()),
             reason: Some("SENZ3131|Invalid column [BAD] requested for CSV export.".to_string()),
             error_type: Some(SzError::SzBadInputError),
             error_id: Some(3131),
@@ -44,7 +45,7 @@ pub fn get_testcases() -> Vec<TestCase> {
         },
         TestCase {
             name: "NegativeTest",
-            message: r#"{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"function":"szengineserver.(*SzEngineServer).ExportCsvEntityReport","error":{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"id":"SZSDK60044007","reason":"SENZ3131|Invalid column [BAD] requested for CSV export."}}}}"#.to_string(),
+            error_message: Some(r#"{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"function":"szengineserver.(*SzEngineServer).ExportCsvEntityReport","error":{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"id":"SZSDK60044007","reason":"SENZ3131|Invalid column [BAD] requested for CSV export."}}}}"#.to_string()),
             reason: Some("SENZ3132|Invalid column [BAD] requested for CSV export.".to_string()), // Wrong SENZnnnn number
             error_type: Some(SzError::SzConfigurationError), // Wrong error_type
             error_id: Some(3132), // Wrong ID
@@ -53,12 +54,12 @@ pub fn get_testcases() -> Vec<TestCase> {
         },
         TestCase {
             name: "MalformedJSON - All None",
-            message: r#"{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{{"function":"szengineserver.(*SzEngineServer).ExportCsvEntityReport","error":{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"id":"SZSDK60044007","reason":"SENZ3131|Invalid column [BAD] requested for CSV export."}}}}"#.to_string(),
+            error_message: Some(r#"{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{{"function":"szengineserver.(*SzEngineServer).ExportCsvEntityReport","error":{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"id":"SZSDK60044007","reason":"SENZ3131|Invalid column [BAD] requested for CSV export."}}}}"#.to_string()),
             ..Default::default()
         },
         TestCase {
             name: "MalformedJSON - All Some",
-            message: r#"{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{{"function":"szengineserver.(*SzEngineServer).ExportCsvEntityReport","error":{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"id":"SZSDK60044007","reason":"SENZ3131|Invalid column [BAD] requested for CSV export."}}}}"#.to_string(),
+            error_message: Some(r#"{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{{"function":"szengineserver.(*SzEngineServer).ExportCsvEntityReport","error":{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"id":"SZSDK60044007","reason":"SENZ3131|Invalid column [BAD] requested for CSV export."}}}}"#.to_string()),
             reason: Some("".to_string()),
             error_type: Some(SzError::SzError),
             error_id: Some(0),
@@ -67,8 +68,14 @@ pub fn get_testcases() -> Vec<TestCase> {
     ]
 }
 
-pub fn mock_senzing_function(message: String) -> Result<String, Box<dyn std::error::Error>> {
-    Err(Box::new(std::io::Error::other(message)))
+pub fn mock_senzing_function(testcase: TestCase) -> Result<String, Box<dyn std::error::Error>> {
+    if let Some(error_message) = testcase.error_message {
+        Err(Box::new(std::io::Error::other(error_message)))
+    } else if let Some(return_message) = testcase.return_message {
+        Ok(return_message)
+    } else {
+        Err(Box::new(std::io::Error::other("Not a SzError")))
+    }
 }
 
 mod test {
@@ -184,21 +191,23 @@ mod test {
         let testcases = get_testcases();
         for testcase in testcases {
             println!("{}", testcase.name);
-            if let Some(reason) = testcase.reason {
-                println!("    expected reason: {}", reason);
-                let senzing_error = as_senzing_error(testcase.message);
+            if let Some(testcase_reason) = testcase.reason
+                && let Some(testcase_error_message) = testcase.error_message
+            {
+                println!("    expected reason: {}", testcase_reason);
+                let senzing_error = as_senzing_error(testcase_error_message);
                 if let Some(senzing_reason) = senzing_error.reason() {
                     if testcase.should_fail {
                         println!("    negative testcase");
-                        assert_ne!(reason, senzing_reason)
+                        assert_ne!(testcase_reason, senzing_reason)
                     } else {
-                        assert_eq!(reason, senzing_reason)
+                        assert_eq!(testcase_reason, senzing_reason)
                     }
                 } else {
                     println!("    error_type() returned None");
                 }
             } else {
-                println!("    ignored");
+                println!("    test ignored");
             }
         }
     }
@@ -208,21 +217,23 @@ mod test {
         let testcases = get_testcases();
         for testcase in testcases {
             println!("{}", testcase.name);
-            if let Some(error_type) = testcase.error_type {
-                println!("    expected error_type: {:?}", error_type);
-                let senzing_error = as_senzing_error(&testcase.message);
+            if let Some(testcase_error_type) = testcase.error_type
+                && let Some(testcase_error_message) = testcase.error_message
+            {
+                println!("    expected error_type: {:?}", testcase_error_type);
+                let senzing_error = as_senzing_error(testcase_error_message);
                 if let Some(senzing_error_type) = senzing_error.error_type() {
                     if testcase.should_fail {
                         println!("    negative testcase");
-                        assert_ne!(error_type, senzing_error_type)
+                        assert_ne!(testcase_error_type, senzing_error_type)
                     } else {
-                        assert_eq!(error_type, senzing_error_type)
+                        assert_eq!(testcase_error_type, senzing_error_type)
                     }
                 } else {
                     println!("    error_type() returned None");
                 }
             } else {
-                println!("    ignored");
+                println!("    test ignored");
             }
         }
     }
@@ -235,7 +246,7 @@ mod test {
             println!("{}", testcase.name);
             if let Some(error_type) = testcase.error_type {
                 println!("    expected error_type: {:?}", error_type);
-                let senzing_result = mock_senzing_function(testcase.message);
+                let senzing_result = mock_senzing_function(testcase);
                 if let Err(e) = senzing_result {
                     let senzing_error = as_senzing_error(e);
                     if let Some(sz) = senzing_error.error_type() {
@@ -274,7 +285,7 @@ mod test {
             println!("{}", testcase.name);
             if let Some(error_type) = testcase.error_type {
                 println!("    expected error_type: {:?}", error_type);
-                let senzing_result = mock_senzing_function(testcase.message);
+                let senzing_result = mock_senzing_function(testcase);
                 match senzing_result {
                     Ok(result_string) => {
                         println!("    string: {}", result_string);
@@ -301,6 +312,8 @@ mod test {
                         }
                     },
                 }
+            } else {
+                println!("    test ignored");
             }
         }
     }
@@ -312,7 +325,7 @@ mod test {
             println!("{}", testcase.name);
             if let Some(error_type) = testcase.error_type {
                 println!("    expected error_type: {:?}", error_type);
-                let senzing_result = mock_senzing_function(testcase.message);
+                let senzing_result = mock_senzing_function(testcase);
                 match senzing_result {
                     Ok(result_string) => {
                         println!("    string: {}", result_string);
@@ -339,7 +352,7 @@ mod test {
                     },
                 }
             } else {
-                println!("    ignored");
+                println!("    test ignored");
             }
         }
     }
