@@ -1,5 +1,3 @@
-// use serde_json::Value;
-
 #[cfg(test)]
 mod tests;
 
@@ -7,37 +5,55 @@ pub mod szproduct_y {
 
     tonic::include_proto!("szproduct");
 
-    use std::sync::OnceLock;
+    use crate::is_destroyed;
+    use std::cell::Cell;
+    use std::sync::Arc;
     use sz_product_client::SzProductClient;
     use tokio::runtime::Runtime;
     use tonic::transport::Channel;
 
-    // Global runtime that persists for the lifetime of the program
-    static RUNTIME: OnceLock<Runtime> = OnceLock::new();
+    // ------------------------------------------------------------------------
+    // SzProductGrpc
+    // ------------------------------------------------------------------------
 
-    pub(crate) fn get_runtime() -> &'static Runtime {
-        RUNTIME.get_or_init(|| {
-            tokio::runtime::Builder::new_multi_thread()
-                .enable_all()
-                .build()
-                .expect("Failed to create tokio runtime")
-        })
+    // For explanation of this technique, view https://www.youtube.com/watch?v=_ccDqRTx-JU
+
+    pub struct Uninitialized;
+    pub struct Initialized;
+
+    pub struct SzProductGrpc<State = Uninitialized> {
+        grpc_client: SzProductClient<Channel>,
+        runtime: Arc<Runtime>,
+        is_destroyed: Cell<bool>,
+        state: std::marker::PhantomData<State>,
     }
 
-    pub struct SzProduct {
-        pub grpc_client: SzProductClient<Channel>,
+    impl SzProductGrpc<Uninitialized> {
+        pub fn new(
+            runtime: Arc<Runtime>,
+            grpc_client: SzProductClient<Channel>,
+        ) -> SzProductGrpc<Initialized> {
+            SzProductGrpc {
+                grpc_client,
+                runtime,
+                state: std::marker::PhantomData::<Initialized>,
+                is_destroyed: Cell::new(false),
+            }
+        }
     }
 
-    impl SzProduct {
+    impl SzProductGrpc<Initialized> {
         pub fn destroy(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+            self.is_destroyed.set(true);
             Ok(())
         }
 
         pub fn get_license(&mut self) -> Result<String, Box<dyn std::error::Error>> {
-            let mut client = self.grpc_client.clone();
-            let rt = get_runtime();
+            is_destroyed!(self.is_destroyed, "SzProduct has been destroyed");
 
-            let response = rt.block_on(async move {
+            let mut client = self.grpc_client.clone();
+
+            let response = self.runtime.block_on(async move {
                 let request = tonic::Request::new(GetLicenseRequest {});
                 client.get_license(request).await
             })?;
@@ -46,15 +62,37 @@ pub mod szproduct_y {
         }
 
         pub fn get_version(&mut self) -> Result<String, Box<dyn std::error::Error>> {
-            let mut client = self.grpc_client.clone();
-            let rt = get_runtime();
+            is_destroyed!(self.is_destroyed, "SzProduct has been destroyed");
 
-            let response = rt.block_on(async move {
+            let mut client = self.grpc_client.clone();
+
+            let response = self.runtime.block_on(async move {
                 let request = tonic::Request::new(GetVersionRequest {});
                 client.get_version(request).await
             })?;
 
             Ok(response.get_ref().clone().result)
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // SzProduct traits for SzProductGrpc
+    // ------------------------------------------------------------------------
+
+    // Type alias for use in trait definitions and public API
+    pub type SzProduct = SzProductGrpc<Initialized>;
+
+    impl crate::traits::SzProduct for SzProductGrpc<Initialized> {
+        fn destroy(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+            self.destroy()
+        }
+
+        fn get_license(&mut self) -> Result<String, Box<dyn std::error::Error>> {
+            self.get_license()
+        }
+
+        fn get_version(&mut self) -> Result<String, Box<dyn std::error::Error>> {
+            self.get_version()
         }
     }
 }

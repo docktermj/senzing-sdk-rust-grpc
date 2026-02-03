@@ -1,10 +1,12 @@
-// use serde_json::Value;
-
 use super::szproduct_y;
 
 #[cfg(test)]
 mod test {
     use super::szproduct_y::sz_product_client::SzProductClient;
+    use crate::helpers::create_grpc_channel_blocking;
+    use crate::helpers::json::is_valid_json;
+    use crate::helpers::runtime::build_runtime;
+    use std::sync::Arc;
     use tonic::transport::Channel;
 
     // ------------------------------------------------------------------------
@@ -33,28 +35,14 @@ mod test {
     // Test helper functions
     // ------------------------------------------------------------------------
 
-    fn is_valid_json(s: String) -> bool {
-        let result = serde_json::from_str::<serde_json::Value>(&s).is_ok();
-        println!("\n>>>>>> is_valid_json:{:?}; JSON: {:?}", result, s);
-        result
-    }
-
-    async fn get_grpc_client_async()
-    -> Result<SzProductClient<Channel>, Box<dyn std::error::Error + Send>> {
-        let result = SzProductClient::connect("http://0.0.0.0:8261").await;
-        Ok(result.unwrap())
-    }
-
-    pub fn get_grpc_client() -> SzProductClient<Channel> {
-        // Use the same global runtime
-        let rt = super::szproduct_y::get_runtime();
-        rt.block_on(async move { get_grpc_client_async().await })
-            .unwrap()
+    pub fn get_grpc_client(runtime: &tokio::runtime::Runtime) -> SzProductClient<Channel> {
+        let grpc_channel = create_grpc_channel_blocking("0.0.0.0:8261", runtime).unwrap();
+        SzProductClient::new(grpc_channel)
     }
 
     pub fn get_szproduct() -> super::szproduct_y::SzProduct {
-        super::szproduct_y::SzProduct {
-            grpc_client: get_grpc_client(),
-        }
+        let runtime = build_runtime();
+        let grpc_client = get_grpc_client(&runtime);
+        super::szproduct_y::SzProductGrpc::new(Arc::new(runtime), grpc_client)
     }
 }

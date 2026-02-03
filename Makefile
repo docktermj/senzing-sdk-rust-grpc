@@ -60,6 +60,7 @@ hello-world: hello-world-osarch-specific
 dependencies-for-development: dependencies-for-development-osarch-specific
 	@sudo npm install -g cspell@latest || true
 	@rustup update
+	@cargo install cargo-pretty-test
 
 
 .PHONY: dependencies
@@ -81,7 +82,42 @@ setup:
 		senzing/serve-grpc
 	$(info senzing/serve-grpc running in background.)
 	$(info Sleeping to allow grpc server to come up.)
-	sleep 3
+	@sleep 3
+
+
+.PHONY: setup-mutual-tls
+setup-mutual-tls:
+	@docker run \
+		--detach \
+		--env SENZING_TOOLS_CLIENT_CA_CERTIFICATE_FILE=/testdata/certificates/certificate-authority/certificate.pem \
+		--env SENZING_TOOLS_ENABLE_ALL=true \
+		--env SENZING_TOOLS_SERVER_CERTIFICATE_FILE=/testdata/certificates/server/certificate.pem \
+		--env SENZING_TOOLS_SERVER_KEY_FILE=/testdata/certificates/server/private_key.pem \
+		--name senzing-serve-grpc \
+		--publish 8261:8261 \
+		--rm \
+		--volume $(MAKEFILE_DIRECTORY)/testdata:/testdata \
+		senzing/serve-grpc
+	$(info senzing/serve-grpc with Mutual TLS running in background.)
+	$(info Sleeping to allow grpc server to come up.)
+	@sleep 3
+
+
+.PHONY: setup-server-side-tls
+setup-server-side-tls:
+	@docker run \
+		--detach \
+		--env SENZING_TOOLS_ENABLE_ALL=true \
+		--env SENZING_TOOLS_SERVER_CERTIFICATE_FILE=/testdata/certificates/server/certificate.pem \
+		--env SENZING_TOOLS_SERVER_KEY_FILE=/testdata/certificates/server/private_key.pem \
+		--name senzing-serve-grpc \
+		--publish 8261:8261 \
+		--rm \
+		--volume $(MAKEFILE_DIRECTORY)/testdata:/testdata \
+		senzing/serve-grpc
+	$(info senzing/serve-grpc with Server-Side TLS running in background.)
+	$(info Sleeping to allow grpc server to come up.)
+	@sleep 3
 
 # -----------------------------------------------------------------------------
 # Lint
@@ -97,7 +133,7 @@ lint:  cspell
 
 .PHONY: build
 build:
-	cargo build
+	@cargo build
 
 # -----------------------------------------------------------------------------
 # Run
@@ -105,7 +141,7 @@ build:
 
 .PHONY: run
 run:
-	cargo run
+	@cargo run
 
 # -----------------------------------------------------------------------------
 # Test
@@ -113,12 +149,35 @@ run:
 
 .PHONY: test
 test:
-	cargo test
+	@cargo pretty-test --tests -- --show-output
 
 
 .PHONY: test-verbose
 test-verbose:
-	cargo test -- --nocapture
+	@cargo test -- --no-capture
+
+
+.PHONY: test-mutual-tls
+test-mutual-tls: export SENZING_TOOLS_SERVER_CA_CERTIFICATE_FILE=$(MAKEFILE_DIRECTORY)/testdata/certificates/certificate-authority/certificate.pem
+test-mutual-tls: export SENZING_TOOLS_CLIENT_CERTIFICATE_FILE=$(MAKEFILE_DIRECTORY)/testdata/certificates/client/certificate.pem
+test-mutual-tls: export SENZING_TOOLS_CLIENT_KEY_FILE=$(MAKEFILE_DIRECTORY)/testdata/certificates/client/private_key.pem
+test-mutual-tls:
+	@cargo test -- --nocapture
+
+
+.PHONY: test-mutual-tls-encrypted-key
+test-mutual-tls-encrypted-key: export SENZING_TOOLS_SERVER_CA_CERTIFICATE_FILE=$(MAKEFILE_DIRECTORY)/testdata/certificates/certificate-authority/certificate.pem
+test-mutual-tls-encrypted-key: export SENZING_TOOLS_CLIENT_CERTIFICATE_FILE=$(MAKEFILE_DIRECTORY)/testdata/certificates/client/certificate.pem
+test-mutual-tls-encrypted-key: export SENZING_TOOLS_CLIENT_KEY_FILE=$(MAKEFILE_DIRECTORY)/testdata/certificates/client/private_key_encrypted.pem
+test-mutual-tls-encrypted-key: export SENZING_TOOLS_CLIENT_KEY_PASSPHRASE=Passw0rd
+test-mutual-tls-encrypted-key:
+	@cargo test -- --nocapture
+
+
+.PHONY: test-server-side-tls
+test-server-side-tls: export SENZING_TOOLS_SERVER_CA_CERTIFICATE_FILE=$(MAKEFILE_DIRECTORY)/testdata/certificates/certificate-authority/certificate.pem
+test-server-side-tls:
+	@cargo test -- --nocapture
 
 # -----------------------------------------------------------------------------
 # Coverage
@@ -166,11 +225,6 @@ print-make-variables:
 # -----------------------------------------------------------------------------
 # Specific programs
 # -----------------------------------------------------------------------------
-
-.PHONY: bearer
-bearer:
-	@bearer scan --config-file .github/linters/bearer.yml .
-
 
 .PHONY: cspell
 cspell:

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-tonic = "*"
+tonic = { version = "0.14.3", features = ["tls-ring", "tls-native-roots"] }
 prost = "0.14"
 tokio = { version = "1.0", features = [
     "rt-multi-thread",
@@ -18,8 +18,13 @@ async-stream = "0.3.6"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 rand = "0.9.2"
-tonic-prost = "0.14.2"
+tonic-prost = "0.14.3"
 futures = "0.3.31"
+pkcs8 = { version = "0.10", features = ["encryption", "pem"] }
+phf = { version = "0.13.1", features = ["macros"] }
+
+[dev-dependencies]
+stdext = "0.3"
 
 [build-dependencies]
-tonic-prost-build = "*"
+tonic-prost-build = "0.14.3"

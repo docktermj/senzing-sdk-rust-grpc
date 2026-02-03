@@ -1,10 +1,15 @@
-// use serde_json::Value;
-
 use super::szdiagnostic_y;
 
 #[cfg(test)]
 mod test {
+
     use super::szdiagnostic_y::sz_diagnostic_client::SzDiagnosticClient;
+    use crate::error::as_senzing_error;
+    use crate::helpers::create_grpc_channel_blocking;
+    use crate::helpers::json::is_valid_json;
+    use crate::helpers::runtime::build_runtime;
+
+    use std::sync::Arc;
     use tonic::transport::Channel;
 
     // ------------------------------------------------------------------------
@@ -23,32 +28,63 @@ mod test {
         assert!(result.is_ok_and(is_valid_json));
     }
 
+    #[test]
+    fn test_get_feature() {
+        let result = get_szdiagnostic().get_feature(1);
+        if let Err(e) = &result {
+            let message = e.to_string();
+            println!(">>>>>> get_feature message: |{}|", message);
+        }
+        if let Err(e) = result.as_ref() {
+            let senzing_error = as_senzing_error(e);
+            // Verify we can extract the reason from the error
+            if let Some(reason) = senzing_error.reason() {
+                println!(">>>>>> get_feature reason: {}", reason);
+            }
+        }
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_get_repository_info() {
+        let result = get_szdiagnostic().get_repository_info();
+        assert!(result.is_ok_and(is_valid_json));
+    }
+
+    #[test]
+    fn test_get_repository_info_error() {
+        let result = get_szdiagnostic().get_repository_info();
+        if let Err(e) = result {
+            println!(">>>>>> test_get_repository_info_error: {}", e);
+        } else {
+            println!(">>>>>> no problems");
+        }
+    }
+
+    #[test]
+    fn test_purge_repository() {
+        let result = get_szdiagnostic().purge_repository();
+        assert!(result.is_ok());
+    }
+
+    // #[test]
+    // fn test_reinitialize() {
+    //     let result = get_szdiagnostic().reinitialize(1);
+    //     assert!(result.is_ok());
+    // }
+
     // ------------------------------------------------------------------------
     // Test helper functions
     // ------------------------------------------------------------------------
 
-    fn is_valid_json(s: String) -> bool {
-        let result = serde_json::from_str::<serde_json::Value>(&s).is_ok();
-        println!("\n>>>>>> is_valid_json:{:?}; JSON: {:?}", result, s);
-        result
-    }
-
-    async fn get_grpc_client_async()
-    -> Result<SzDiagnosticClient<Channel>, Box<dyn std::error::Error + Send>> {
-        let result = SzDiagnosticClient::connect("http://0.0.0.0:8261").await;
-        Ok(result.unwrap())
-    }
-
-    pub fn get_grpc_client() -> SzDiagnosticClient<Channel> {
-        // Use the same global runtime
-        let rt = super::szdiagnostic_y::get_runtime();
-        rt.block_on(async move { get_grpc_client_async().await })
-            .unwrap()
+    pub fn get_grpc_client(runtime: &tokio::runtime::Runtime) -> SzDiagnosticClient<Channel> {
+        let grpc_channel = create_grpc_channel_blocking("0.0.0.0:8261", runtime).unwrap();
+        SzDiagnosticClient::new(grpc_channel)
     }
 
     pub fn get_szdiagnostic() -> super::szdiagnostic_y::SzDiagnostic {
-        super::szdiagnostic_y::SzDiagnostic {
-            grpc_client: get_grpc_client(),
-        }
+        let runtime = build_runtime();
+        let grpc_client = get_grpc_client(&runtime);
+        super::szdiagnostic_y::SzDiagnosticGrpc::new(Arc::new(runtime), grpc_client)
     }
 }
