@@ -4,6 +4,7 @@ mod tests;
 pub mod errortypes;
 
 use serde_json::Value;
+use std::any::Any;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter, Result};
 
@@ -11,25 +12,27 @@ use std::fmt::{Debug, Display, Formatter, Result};
 // Traits
 // ----------------------------------------------------------------------------
 
-pub trait SzErrorTrait: Debug + Display {
-    fn is(&self) -> bool {
-        false
+pub trait SzErrorTrait: Debug + Display + Error + Any {
+    fn is(&self, szerror: SzError) -> bool {
+        szerror == SzError::SzError || szerror == self.error_type()
     }
 
     fn error_type(&self) -> SzError;
 
     fn message(&self) -> &str;
+
+    fn as_any(&self) -> &dyn Any;
 }
 
 // ----------------------------------------------------------------------------
 // Enums
 // ----------------------------------------------------------------------------
 
-#[derive(Debug)]
-pub struct Uninitialized;
+// #[derive(Debug)]
+// pub struct Uninitialized;
 
-#[derive(Debug)]
-pub struct Initialized;
+// #[derive(Debug)]
+// pub struct Initialized;
 
 // ----------------------------------------------------------------------------
 
@@ -81,6 +84,10 @@ pub struct SzUnknownDataSourceError;
 #[derive(Debug)]
 pub struct SzUnrecoverableError;
 
+// ----------------------------------------------------------------------------
+// Enums
+// ----------------------------------------------------------------------------
+
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SzError {
     SzBadInputError,
@@ -108,21 +115,119 @@ pub enum SzError {
 // ----------------------------------------------------------------------------
 
 // impl SenzingError<SzBadInputError> {}
-// impl SenzingError<SzConfigurationError> {}
-// impl SenzingError<SzDatabaseConnectionLostError> {}
-// impl SenzingError<SzDatabaseError> {}
-// impl SenzingError<SzDatabaseTransientError> {}
+
+impl SenzingError<SzConfigurationError> {
+    pub fn is(&self, szerror: SzError) -> bool {
+        matches!(
+            szerror,
+            SzError::SzError | SzError::SzGeneralError | SzError::SzConfigurationError
+        )
+    }
+}
+
+impl SenzingError<SzDatabaseConnectionLostError> {
+    pub fn is(&self, szerror: SzError) -> bool {
+        matches!(
+            szerror,
+            SzError::SzError | SzError::SzRetryableError | SzError::SzDatabaseConnectionLostError
+        )
+    }
+}
+
+impl SenzingError<SzDatabaseError> {
+    pub fn mjd_was_here(&self) {}
+
+    pub fn is(&self, szerror: SzError) -> bool {
+        matches!(
+            szerror,
+            SzError::SzError | SzError::SzUnrecoverableError | SzError::SzDatabaseError
+        )
+    }
+}
+
+impl SenzingError<SzDatabaseTransientError> {
+    pub fn is(&self, szerror: SzError) -> bool {
+        matches!(
+            szerror,
+            SzError::SzError | SzError::SzRetryableError | SzError::SzDatabaseTransientError
+        )
+    }
+}
+
 // impl SenzingError<SzError> {}
 // impl SenzingError<SzGeneralError> {}
-// impl SenzingError<SzLicenseError> {}
-// impl SenzingError<SzNotFoundError> {}
-// impl SenzingError<SzNotInitializedError> {}
-// impl SenzingError<SzReplaceConflictError> {}
+
+impl SenzingError<SzLicenseError> {
+    pub fn is(&self, szerror: SzError) -> bool {
+        matches!(
+            szerror,
+            SzError::SzError | SzError::SzUnrecoverableError | SzError::SzLicenseError
+        )
+    }
+}
+impl SenzingError<SzNotFoundError> {
+    pub fn is(&self, szerror: SzError) -> bool {
+        matches!(
+            szerror,
+            SzError::SzError | SzError::SzBadInputError | SzError::SzNotFoundError
+        )
+    }
+}
+impl SenzingError<SzNotInitializedError> {
+    pub fn is(&self, szerror: SzError) -> bool {
+        matches!(
+            szerror,
+            SzError::SzError | SzError::SzUnrecoverableError | SzError::SzNotInitializedError
+        )
+    }
+}
+impl SenzingError<SzReplaceConflictError> {
+    pub fn is(&self, szerror: SzError) -> bool {
+        matches!(
+            szerror,
+            SzError::SzError | SzError::SzGeneralError | SzError::SzReplaceConflictError
+        )
+    }
+}
+
 // impl SenzingError<SzRetryableError> {}
-// impl SenzingError<SzRetryTimeoutExceededError> {}
-// impl SenzingError<SzSdkError> {}
-// impl SenzingError<SzUnhandledError> {}
-// impl SenzingError<SzUnknownDataSourceError> {}
+
+impl SenzingError<SzRetryTimeoutExceededError> {
+    pub fn is(&self, szerror: SzError) -> bool {
+        matches!(
+            szerror,
+            SzError::SzError | SzError::SzRetryableError | SzError::SzRetryTimeoutExceededError
+        )
+    }
+}
+
+impl SenzingError<SzSdkError> {
+    pub fn is(&self, szerror: SzError) -> bool {
+        matches!(
+            szerror,
+            SzError::SzError | SzError::SzGeneralError | SzError::SzSdkError
+        )
+    }
+}
+
+impl SenzingError<SzUnknownDataSourceError> {
+    pub fn is(&self, szerror: SzError) -> bool {
+        matches!(
+            szerror,
+            SzError::SzError | SzError::SzBadInputError | SzError::SzUnknownDataSourceError
+        )
+    }
+}
+
+impl SenzingError<SzUnhandledError> {
+    pub fn is(&self, szerror: SzError) -> bool {
+        matches!(
+            szerror,
+            SzError::SzError | SzError::SzUnrecoverableError | SzError::SzUnhandledError
+        )
+    }
+}
+
 // impl SenzingError<SzUnrecoverableError> {}
 
 // pub fn as_senzing_error(error: impl ToString) -> SenzingError {
@@ -135,33 +240,27 @@ pub enum SzError {
 
 /// A Senzing-specific error extracted from a gRPC error response.
 #[derive(Default, Debug)]
-pub struct SenzingError<State = Uninitialized> {
+pub struct SenzingError<State = SzError> {
     message: String,
     error_type: SzError,
     state: std::marker::PhantomData<State>,
 }
 
-impl SenzingError<Uninitialized> {
-    pub fn new_y(self, message: String) -> SenzingError<Initialized> {
-        SenzingError {
-            message,
-            error_type: SzError::default(),
-            state: std::marker::PhantomData::<Initialized>,
-        }
-    }
-}
+// impl SenzingError<Uninitialized> {
+//     pub fn new_y(self, message: String) -> SenzingError<Initialized> {
+//         SenzingError {
+//             message,
+//             error_type: SzError::default(),
+//             state: std::marker::PhantomData::<Initialized>,
+//         }
+//     }
+// }
 
-impl SenzingError<Initialized> {
-    pub fn is(self, szerror: SzError) -> bool {
-        true
-    }
-}
-
-impl SenzingError<SzBadInputError> {
-    pub fn is(self, szerror: SzError) -> bool {
-        true
-    }
-}
+// impl SenzingError<Initialized> {
+//     pub fn is(self, szerror: SzError) -> bool {
+//         true
+//     }
+// }
 
 impl<State> SenzingError<State> {
     pub fn message(self) -> String {
@@ -174,18 +273,7 @@ impl<State> SenzingError<State> {
 }
 
 impl SenzingError {
-    /// Creates a new SenzingError by parsing the error message to determine the specific error type.
-    ///
-    /// This method extracts the error type from the message and returns a boxed trait object
-    /// containing the appropriate variant of SenzingError based on the error code.
-    ///
-    /// # Arguments
-    ///
-    /// * `message` - The error message string, typically from a gRPC error response
-    ///
-    /// # Returns
-    ///
-    /// A boxed trait object (`Box<dyn SzErrorTrait>`) containing the specific error variant
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(message: String) -> Box<dyn SzErrorTrait> {
         let error_type_x = extract_error_type(&message);
         if let Some(error_type) = error_type_x {
@@ -311,7 +399,7 @@ impl SenzingError {
 //     }
 // }
 
-impl<State: Debug> Error for SenzingError<State> {}
+impl<State: Debug + 'static> Error for SenzingError<State> {}
 
 impl<State> Display for SenzingError<State> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
@@ -319,10 +407,10 @@ impl<State> Display for SenzingError<State> {
     }
 }
 
-impl<State: Debug> SzErrorTrait for SenzingError<State> {
-    fn is(&self) -> bool {
-        false
-    }
+impl<State: Debug + 'static> SzErrorTrait for SenzingError<State> {
+    // fn is(&self) -> bool {
+    //     false
+    // }
 
     fn error_type(&self) -> SzError {
         self.error_type
@@ -330,6 +418,10 @@ impl<State: Debug> SzErrorTrait for SenzingError<State> {
 
     fn message(&self) -> &str {
         &self.message
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
     }
 }
 
