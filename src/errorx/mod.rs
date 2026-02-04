@@ -25,15 +25,7 @@ pub trait SzErrorTrait: Debug + Display + Error + Any {
 }
 
 // ----------------------------------------------------------------------------
-// Enums
-// ----------------------------------------------------------------------------
-
-// #[derive(Debug)]
-// pub struct Uninitialized;
-
-// #[derive(Debug)]
-// pub struct Initialized;
-
+// Structs
 // ----------------------------------------------------------------------------
 
 #[derive(Debug)]
@@ -89,6 +81,7 @@ pub struct SzUnrecoverableError;
 // ----------------------------------------------------------------------------
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum SzError {
     SzBadInputError,
     SzConfigurationError,
@@ -113,6 +106,16 @@ pub enum SzError {
 // ----------------------------------------------------------------------------
 // SenzingError
 // ----------------------------------------------------------------------------
+
+// For explanation of the following technique, view https://www.youtube.com/watch?v=_ccDqRTx-JU
+
+#[derive(Default, Debug)]
+#[non_exhaustive]
+pub struct SenzingError<State = SzError> {
+    message: String,
+    error_type: SzError,
+    state: std::marker::PhantomData<State>,
+}
 
 // impl SenzingError<SzBadInputError> {}
 
@@ -230,38 +233,6 @@ impl SenzingError<SzUnhandledError> {
 
 // impl SenzingError<SzUnrecoverableError> {}
 
-// pub fn as_senzing_error(error: impl ToString) -> SenzingError {
-//     let message = error.to_string();
-//     let json = extract_json_from_message(&message);
-//     SenzingError { message, json }
-// }
-
-// For explanation of this technique, view https://www.youtube.com/watch?v=_ccDqRTx-JU
-
-/// A Senzing-specific error extracted from a gRPC error response.
-#[derive(Default, Debug)]
-pub struct SenzingError<State = SzError> {
-    message: String,
-    error_type: SzError,
-    state: std::marker::PhantomData<State>,
-}
-
-// impl SenzingError<Uninitialized> {
-//     pub fn new_y(self, message: String) -> SenzingError<Initialized> {
-//         SenzingError {
-//             message,
-//             error_type: SzError::default(),
-//             state: std::marker::PhantomData::<Initialized>,
-//         }
-//     }
-// }
-
-// impl SenzingError<Initialized> {
-//     pub fn is(self, szerror: SzError) -> bool {
-//         true
-//     }
-// }
-
 impl<State> SenzingError<State> {
     pub fn message(self) -> String {
         self.message
@@ -271,6 +242,36 @@ impl<State> SenzingError<State> {
         self.error_type
     }
 }
+
+// ----------------------------------------------------------------------------
+// Trait methods
+// ----------------------------------------------------------------------------
+
+impl<State: Debug + 'static> Error for SenzingError<State> {}
+
+impl<State> Display for SenzingError<State> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "SenzingError: {}", self.message)
+    }
+}
+
+impl<State: Debug + 'static> SzErrorTrait for SenzingError<State> {
+    fn error_type(&self) -> SzError {
+        self.error_type
+    }
+
+    fn message(&self) -> &str {
+        &self.message
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
+// ----------------------------------------------------------------------------
+// Constructors
+// ----------------------------------------------------------------------------
 
 impl SenzingError {
     #[allow(clippy::new_ret_no_self)]
@@ -387,46 +388,7 @@ impl SenzingError {
 }
 
 // ----------------------------------------------------------------------------
-// SenzingError - methods
-// ----------------------------------------------------------------------------
-
-// impl Default for SenzingError {
-//     fn default() -> Self {
-//         SenzingError {
-//             message: "A Message".to_string(),
-//             ..Default::default()
-//         }
-//     }
-// }
-
-impl<State: Debug + 'static> Error for SenzingError<State> {}
-
-impl<State> Display for SenzingError<State> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "SenzingError: {}", self.message)
-    }
-}
-
-impl<State: Debug + 'static> SzErrorTrait for SenzingError<State> {
-    // fn is(&self) -> bool {
-    //     false
-    // }
-
-    fn error_type(&self) -> SzError {
-        self.error_type
-    }
-
-    fn message(&self) -> &str {
-        &self.message
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-}
-
-// ----------------------------------------------------------------------------
-// Functions
+// Private functions
 // ----------------------------------------------------------------------------
 
 fn extract_error_type(message: &str) -> Option<SzError> {
