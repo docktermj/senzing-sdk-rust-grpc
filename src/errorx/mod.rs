@@ -233,13 +233,31 @@ impl SenzingError<SzUnhandledError> {
 
 // impl SenzingError<SzUnrecoverableError> {}
 
-impl<State> SenzingError<State> {
+impl<State: 'static> SenzingError<State> {
     pub fn message(self) -> String {
         self.message
     }
 
     pub fn error_type(&self) -> SzError {
         self.error_type
+    }
+
+    /// Attempts to downcast this error to a specific SenzingError type.
+    ///
+    /// # Returns
+    ///
+    /// * `Some(&T)` if the downcast succeeds
+    /// * `None` if the downcast fails
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// if let Some(general_error) = sz_error.downcast::<SenzingError<SzGeneralError>>() {
+    ///     // Handle the general error specifically
+    /// }
+    /// ```
+    pub fn downcast<T: 'static>(&self) -> Option<&T> {
+        (self as &dyn Any).downcast_ref::<T>()
     }
 }
 
