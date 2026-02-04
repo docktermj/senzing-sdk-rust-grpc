@@ -5,10 +5,32 @@ pub mod errortypes;
 
 use serde_json::Value;
 use std::error::Error;
-use std::fmt;
+use std::fmt::{Debug, Display, Formatter, Result};
+
+// ----------------------------------------------------------------------------
+// Traits
+// ----------------------------------------------------------------------------
+
+pub trait SzErrorTrait: Debug + Display {
+    fn is(&self) -> bool {
+        false
+    }
+
+    fn error_type(&self) -> SzError;
+
+    fn message(&self) -> &str;
+}
 
 // ----------------------------------------------------------------------------
 // Enums
+// ----------------------------------------------------------------------------
+
+#[derive(Debug)]
+pub struct Uninitialized;
+
+#[derive(Debug)]
+pub struct Initialized;
+
 // ----------------------------------------------------------------------------
 
 #[derive(Debug)]
@@ -25,9 +47,6 @@ pub struct SzDatabaseError;
 
 #[derive(Debug)]
 pub struct SzDatabaseTransientError;
-
-#[derive(Debug)]
-pub struct SzErrorX;
 
 #[derive(Debug)]
 pub struct SzGeneralError;
@@ -88,64 +107,196 @@ pub enum SzError {
 // SenzingError
 // ----------------------------------------------------------------------------
 
-// For explanation of this technique, view https://www.youtube.com/watch?v=_ccDqRTx-JU
-
-/// A Senzing-specific error extracted from a gRPC error response.
-#[derive(Default, Debug)]
-pub struct SenzingError<State = SzErrorX> {
-    message: String,
-    error_type: SzError,
-    state: std::marker::PhantomData<State>,
-}
-
-impl SenzingError<SzErrorX> {}
-impl SenzingError<SzBadInputError> {}
-impl SenzingError<SzConfigurationError> {}
-impl SenzingError<SzDatabaseConnectionLostError> {}
-impl SenzingError<SzDatabaseError> {}
-impl SenzingError<SzDatabaseTransientError> {}
-impl SenzingError<SzError> {}
-impl SenzingError<SzGeneralError> {}
-impl SenzingError<SzLicenseError> {}
-impl SenzingError<SzNotFoundError> {}
-impl SenzingError<SzNotInitializedError> {}
-impl SenzingError<SzReplaceConflictError> {}
-impl SenzingError<SzRetryableError> {}
-impl SenzingError<SzRetryTimeoutExceededError> {}
-impl SenzingError<SzSdkError> {}
-impl SenzingError<SzUnhandledError> {}
-impl SenzingError<SzUnknownDataSourceError> {}
-impl SenzingError<SzUnrecoverableError> {}
-impl<State> SenzingError<State> {
-    pub fn for_all(&self) -> String {
-        "for all was here".to_string()
-    }
-    pub fn error_type(&self) -> SzError {
-        self.error_type
-    }
-}
-
-impl SenzingError {
-    pub fn new() -> Self {
-        SenzingError {
-            message: "A Message".to_string(),
-            ..Default::default()
-        }
-    }
-
-    // pub fn new_bad_input() -> SenzingError<SzBadInputError> {
-    //     SenzingError {
-    //         message: "A Message".to_string(),
-    //         state: std::marker::PhantomData::<SzBadInputError>,
-    //     }
-    // }
-}
+// impl SenzingError<SzBadInputError> {}
+// impl SenzingError<SzConfigurationError> {}
+// impl SenzingError<SzDatabaseConnectionLostError> {}
+// impl SenzingError<SzDatabaseError> {}
+// impl SenzingError<SzDatabaseTransientError> {}
+// impl SenzingError<SzError> {}
+// impl SenzingError<SzGeneralError> {}
+// impl SenzingError<SzLicenseError> {}
+// impl SenzingError<SzNotFoundError> {}
+// impl SenzingError<SzNotInitializedError> {}
+// impl SenzingError<SzReplaceConflictError> {}
+// impl SenzingError<SzRetryableError> {}
+// impl SenzingError<SzRetryTimeoutExceededError> {}
+// impl SenzingError<SzSdkError> {}
+// impl SenzingError<SzUnhandledError> {}
+// impl SenzingError<SzUnknownDataSourceError> {}
+// impl SenzingError<SzUnrecoverableError> {}
 
 // pub fn as_senzing_error(error: impl ToString) -> SenzingError {
 //     let message = error.to_string();
 //     let json = extract_json_from_message(&message);
 //     SenzingError { message, json }
 // }
+
+// For explanation of this technique, view https://www.youtube.com/watch?v=_ccDqRTx-JU
+
+/// A Senzing-specific error extracted from a gRPC error response.
+#[derive(Default, Debug)]
+pub struct SenzingError<State = Uninitialized> {
+    message: String,
+    error_type: SzError,
+    state: std::marker::PhantomData<State>,
+}
+
+impl SenzingError<Uninitialized> {
+    pub fn new_y(self, message: String) -> SenzingError<Initialized> {
+        SenzingError {
+            message,
+            error_type: SzError::default(),
+            state: std::marker::PhantomData::<Initialized>,
+        }
+    }
+}
+
+impl SenzingError<Initialized> {
+    pub fn is(self, szerror: SzError) -> bool {
+        true
+    }
+}
+
+impl SenzingError<SzBadInputError> {
+    pub fn is(self, szerror: SzError) -> bool {
+        true
+    }
+}
+
+impl<State> SenzingError<State> {
+    pub fn message(self) -> String {
+        self.message
+    }
+
+    pub fn error_type(&self) -> SzError {
+        self.error_type
+    }
+}
+
+impl SenzingError {
+    /// Creates a new SenzingError by parsing the error message to determine the specific error type.
+    ///
+    /// This method extracts the error type from the message and returns a boxed trait object
+    /// containing the appropriate variant of SenzingError based on the error code.
+    ///
+    /// # Arguments
+    ///
+    /// * `message` - The error message string, typically from a gRPC error response
+    ///
+    /// # Returns
+    ///
+    /// A boxed trait object (`Box<dyn SzErrorTrait>`) containing the specific error variant
+    pub fn new(message: String) -> Box<dyn SzErrorTrait> {
+        let error_type_x = extract_error_type(&message);
+        if let Some(error_type) = error_type_x {
+            match error_type {
+                SzError::SzBadInputError => Box::new(SenzingError::<SzBadInputError> {
+                    message,
+                    error_type,
+                    state: std::marker::PhantomData,
+                }),
+                SzError::SzConfigurationError => Box::new(SenzingError::<SzConfigurationError> {
+                    message,
+                    error_type,
+                    state: std::marker::PhantomData,
+                }),
+                SzError::SzDatabaseConnectionLostError => {
+                    Box::new(SenzingError::<SzDatabaseConnectionLostError> {
+                        message,
+                        error_type,
+                        state: std::marker::PhantomData,
+                    })
+                }
+                SzError::SzDatabaseError => Box::new(SenzingError::<SzDatabaseError> {
+                    message,
+                    error_type,
+                    state: std::marker::PhantomData,
+                }),
+                SzError::SzDatabaseTransientError => {
+                    Box::new(SenzingError::<SzDatabaseTransientError> {
+                        message,
+                        error_type,
+                        state: std::marker::PhantomData,
+                    })
+                }
+                SzError::SzGeneralError => Box::new(SenzingError::<SzGeneralError> {
+                    message,
+                    error_type,
+                    state: std::marker::PhantomData,
+                }),
+                SzError::SzLicenseError => Box::new(SenzingError::<SzLicenseError> {
+                    message,
+                    error_type,
+                    state: std::marker::PhantomData,
+                }),
+                SzError::SzNotFoundError => Box::new(SenzingError::<SzNotFoundError> {
+                    message,
+                    error_type,
+                    state: std::marker::PhantomData,
+                }),
+                SzError::SzNotInitializedError => Box::new(SenzingError::<SzNotInitializedError> {
+                    message,
+                    error_type,
+                    state: std::marker::PhantomData,
+                }),
+                SzError::SzReplaceConflictError => {
+                    Box::new(SenzingError::<SzReplaceConflictError> {
+                        message,
+                        error_type,
+                        state: std::marker::PhantomData,
+                    })
+                }
+                SzError::SzRetryableError => Box::new(SenzingError::<SzRetryableError> {
+                    message,
+                    error_type,
+                    state: std::marker::PhantomData,
+                }),
+                SzError::SzRetryTimeoutExceededError => {
+                    Box::new(SenzingError::<SzRetryTimeoutExceededError> {
+                        message,
+                        error_type,
+                        state: std::marker::PhantomData,
+                    })
+                }
+                SzError::SzSdkError => Box::new(SenzingError::<SzSdkError> {
+                    message,
+                    error_type,
+                    state: std::marker::PhantomData,
+                }),
+                SzError::SzUnhandledError => Box::new(SenzingError::<SzUnhandledError> {
+                    message,
+                    error_type,
+                    state: std::marker::PhantomData,
+                }),
+                SzError::SzUnknownDataSourceError => {
+                    Box::new(SenzingError::<SzUnknownDataSourceError> {
+                        message,
+                        error_type,
+                        state: std::marker::PhantomData,
+                    })
+                }
+                SzError::SzUnrecoverableError => Box::new(SenzingError::<SzUnrecoverableError> {
+                    message,
+                    error_type,
+                    state: std::marker::PhantomData,
+                }),
+                // Default case for SzError::SzError or any other variant
+                SzError::SzError => Box::new(SenzingError::<SzError> {
+                    message,
+                    error_type,
+                    state: std::marker::PhantomData,
+                }),
+            }
+        } else {
+            // No error type could be extracted, return generic SzError variant
+            Box::new(SenzingError::<SzError> {
+                message,
+                error_type: SzError::SzError,
+                state: std::marker::PhantomData,
+            })
+        }
+    }
+}
 
 // ----------------------------------------------------------------------------
 // SenzingError - methods
@@ -160,17 +311,39 @@ impl SenzingError {
 //     }
 // }
 
-impl<State: fmt::Debug> Error for SenzingError<State> {}
+impl<State: Debug> Error for SenzingError<State> {}
 
-impl<State> fmt::Display for SenzingError<State> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl<State> Display for SenzingError<State> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(f, "SenzingError: {}", self.message)
+    }
+}
+
+impl<State: Debug> SzErrorTrait for SenzingError<State> {
+    fn is(&self) -> bool {
+        false
+    }
+
+    fn error_type(&self) -> SzError {
+        self.error_type
+    }
+
+    fn message(&self) -> &str {
+        &self.message
     }
 }
 
 // ----------------------------------------------------------------------------
 // Functions
 // ----------------------------------------------------------------------------
+
+fn extract_error_type(message: &str) -> Option<SzError> {
+    extract_json_from_message(message)
+        .and_then(|json_str| serde_json::from_str::<Value>(&json_str).ok())
+        .and_then(|json_value| extract_reason_from_json(&json_value))
+        .and_then(|reason| extract_error_id_from_reason(&reason))
+        .and_then(get_error_type_for_error_id)
+}
 
 fn extract_json_from_message(message: &str) -> Option<String> {
     // Try to find and parse escaped JSON in the "self:" field

@@ -1,6 +1,7 @@
+use std::ops::Deref;
+
 #[cfg(test)]
-use crate::error::SzError;
-use crate::errorx::SenzingError;
+use crate::errorx::{SenzingError, SzError, SzErrorTrait};
 
 #[derive(Debug, Default, PartialEq)]
 pub struct TestCase {
@@ -135,10 +136,23 @@ pub fn mock_senzing_function(testcase: TestCase) -> Result<String, Box<dyn std::
 pub fn mock_senzing_function_error() -> Result<String, Box<dyn std::error::Error>> {
     let senzing_error: SenzingError<crate::errorx::SzBadInputError> = SenzingError {
         message: "The Senzing error".to_string(),
+        error_type: Default::default(),
         state: std::marker::PhantomData,
     };
     // Err(Box::new(std::io::Error::other(senzing_error)))
     Err(Box::new(senzing_error))
+}
+
+pub fn new_error() -> Box<dyn SzErrorTrait> {
+    SenzingError::new("Just a message".to_string())
+}
+
+pub fn new_error_2() -> Box<dyn SzErrorTrait> {
+    SenzingError::new("Just a message".to_string())
+}
+
+pub fn new_error_3() -> Box<dyn SzErrorTrait> {
+    SenzingError::new("Just a message".to_string())
 }
 
 mod test {
@@ -146,7 +160,67 @@ mod test {
 
     use crate::errorx::{
         SenzingError, SzBadInputError, SzLicenseError, SzRetryTimeoutExceededError,
+        tests::new_error,
     };
+
+    // ------------------------------------------------------------------------
+    // Test SenzingError::new() returns different variants
+    // ------------------------------------------------------------------------
+
+    #[test]
+    fn test_senzing_error_new_returns_different_variants() {
+        use crate::errorx::SzError;
+
+        // Test 1: SzConfigurationError variant (error code 60)
+        let config_error_msg = r#"status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": {\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0060|Unknown feature ID value '1'\"}}}", metadata: {"content-type": "application/grpc"}"#.to_string();
+        let err1 = SenzingError::new(config_error_msg.clone());
+
+        println!("Test 1: SzConfigurationError");
+        println!("  Message: {}", config_error_msg);
+        println!("  Error type: {:?}", err1.error_type());
+        println!("  Expected: SzConfigurationError");
+        assert_eq!(
+            err1.error_type(),
+            SzError::SzConfigurationError,
+            "Expected SzConfigurationError for SENZ0060 error code"
+        );
+
+        // Test 2: SzBadInputError variant (error code 3131)
+        let bad_input_error_msg = r#"{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"function":"szengineserver.(*SzEngineServer).ExportCsvEntityReport","error":{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"id":"SZSDK60044007","reason":"SENZ3131|Invalid column [BAD] requested for CSV export."}}}}"#.to_string();
+        let err2 = SenzingError::new(bad_input_error_msg.clone());
+
+        println!("\nTest 2: SzBadInputError");
+        println!("  Message: {}", bad_input_error_msg);
+        println!("  Error type: {:?}", err2.error_type());
+        println!("  Expected: SzBadInputError");
+        assert_eq!(
+            err2.error_type(),
+            SzError::SzBadInputError,
+            "Expected SzBadInputError for SENZ3131 error code"
+        );
+
+        // Test 3: Generic SzError variant (no error code)
+        let generic_error_msg = "Just a plain message with no error code".to_string();
+        let err3 = SenzingError::new(generic_error_msg.clone());
+
+        println!("\nTest 3: Generic SzError (no error code)");
+        println!("  Message: {}", generic_error_msg);
+        println!("  Error type: {:?}", err3.error_type());
+        println!("  Expected: SzError");
+        assert_eq!(
+            err3.error_type(),
+            SzError::SzError,
+            "Expected generic SzError for message without error code"
+        );
+
+        println!("\n✓ All variants correctly created by SenzingError::new()");
+    }
+
+    #[test]
+    fn test_match_senzing_error_type_10() {
+        let err = new_error();
+        println!(">>>> {:?}", err);
+    }
 
     // ------------------------------------------------------------------------
     // Test simplified prototypes of error type
@@ -170,29 +244,29 @@ mod test {
         }
     }
 
-    #[test]
-    fn test_match_senzing_error_type_2() {
-        let result = mock_senzing_function_error();
-        match result {
-            Ok(string) => {
-                println!(">>>>>> {}", string);
-            }
-            Err(err) => {
-                println!(">>>>>> In error: {:?}", err);
-                // Try downcasting to SenzingError<SzBadInputError> first
-                if let Some(sz) = err.downcast_ref::<SenzingError<SzBadInputError>>() {
-                    println!(">>>>>> Senzing Err (SzBadInputError): {}", sz);
-                    sz.for_all();
-                } else if let Some(sz) = err.downcast_ref::<SenzingError>() {
-                    // Try downcasting to default SenzingError (i.e., SenzingError<SzErrorX>)
-                    println!(">>>>>> Senzing Err (default): {}", sz);
-                    sz.for_all();
-                } else {
-                    println!(">>>>>> Non-Senzing")
-                }
-            }
-        }
-    }
+    // #[test]
+    // fn test_match_senzing_error_type_2() {
+    //     let result = mock_senzing_function_error();
+    //     match result {
+    //         Ok(string) => {
+    //             println!(">>>>>> {}", string);
+    //         }
+    //         Err(err) => {
+    //             println!(">>>>>> In error: {:?}", err);
+    //             // Try downcasting to SenzingError<SzBadInputError> first
+    //             if let Some(sz) = err.downcast_ref::<SenzingError<SzBadInputError>>() {
+    //                 println!(">>>>>> Senzing Err (SzBadInputError): {}", sz);
+    //                 sz.for_all();
+    //             } else if let Some(sz) = err.downcast_ref::<SenzingError>() {
+    //                 // Try downcasting to default SenzingError (i.e., SenzingError<SzErrorX>)
+    //                 println!(">>>>>> Senzing Err (default): {}", sz);
+    //                 sz.for_all();
+    //             } else {
+    //                 println!(">>>>>> Non-Senzing")
+    //             }
+    //         }
+    //     }
+    // }
 
     #[test]
     fn test_match_senzing_error_type_3() {
@@ -245,22 +319,22 @@ mod test {
         }
     }
 
-    #[test]
-    fn test_match_senzing_error_type_4() {
-        let result = mock_senzing_function_error();
-        match result {
-            Ok(string) => {
-                println!(">>>>>> {}", string);
-            }
-            Err(err) => {
-                println!(">>>>>> In error: {:?}", err);
+    // #[test]
+    // fn test_match_senzing_error_type_4() {
+    //     let result = mock_senzing_function_error();
+    //     match result {
+    //         Ok(string) => {
+    //             println!(">>>>>> {}", string);
+    //         }
+    //         Err(err) => {
+    //             println!(">>>>>> In error: {:?}", err);
 
-                if let Some(senzing_error) = err.downcast_ref::<SenzingError>() {
-                    let senzing_error_type = senzing_error.error_type();
-                } else {
-                    println!(">>>>>> Non-Senzing or unknown error type");
-                }
-            }
-        }
-    }
+    //             if let Some(senzing_error) = err.downcast_ref::<SenzingError>() {
+    //                 let senzing_error_type = senzing_error.error_type();
+    //             } else {
+    //                 println!(">>>>>> Non-Senzing or unknown error type");
+    //             }
+    //         }
+    //     }
+    // }
 }
