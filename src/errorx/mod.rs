@@ -13,9 +13,7 @@ use std::fmt::{Debug, Display, Formatter, Result};
 // ----------------------------------------------------------------------------
 
 pub trait SzErrorTrait: Debug + Display + Error + Any {
-    fn is(&self, szerror: SzError) -> bool {
-        szerror == SzError::SzError || szerror == self.error_type()
-    }
+    fn is(&self, szerror: SzError) -> bool;
 
     fn error_type(&self) -> SzError;
 
@@ -114,122 +112,123 @@ pub enum SzError {
 pub struct SenzingError<State = SzError> {
     message: String,
     error_type: SzError,
+    error_hierarchy: Vec<SzError>,
     state: std::marker::PhantomData<State>,
 }
 
 // impl SenzingError<SzBadInputError> {}
 
-impl SenzingError<SzConfigurationError> {
-    pub fn is(&self, szerror: SzError) -> bool {
-        matches!(
-            szerror,
-            SzError::SzError | SzError::SzGeneralError | SzError::SzConfigurationError
-        )
-    }
-}
+// impl SenzingError<SzConfigurationError> {
+//     pub fn is(&self, szerror: SzError) -> bool {
+//         matches!(
+//             szerror,
+//             SzError::SzError | SzError::SzGeneralError | SzError::SzConfigurationError
+//         )
+//     }
+// }
 
-impl SenzingError<SzDatabaseConnectionLostError> {
-    pub fn is(&self, szerror: SzError) -> bool {
-        matches!(
-            szerror,
-            SzError::SzError | SzError::SzRetryableError | SzError::SzDatabaseConnectionLostError
-        )
-    }
-}
+// impl SenzingError<SzDatabaseConnectionLostError> {
+//     pub fn is(&self, szerror: SzError) -> bool {
+//         matches!(
+//             szerror,
+//             SzError::SzError | SzError::SzRetryableError | SzError::SzDatabaseConnectionLostError
+//         )
+//     }
+// }
 
 impl SenzingError<SzDatabaseError> {
     pub fn mjd_was_here(&self) {}
 
-    pub fn is(&self, szerror: SzError) -> bool {
-        matches!(
-            szerror,
-            SzError::SzError | SzError::SzUnrecoverableError | SzError::SzDatabaseError
-        )
-    }
+    // pub fn is(&self, szerror: SzError) -> bool {
+    //     matches!(
+    //         szerror,
+    //         SzError::SzError | SzError::SzUnrecoverableError | SzError::SzDatabaseError
+    //     )
+    // }
 }
 
-impl SenzingError<SzDatabaseTransientError> {
-    pub fn is(&self, szerror: SzError) -> bool {
-        matches!(
-            szerror,
-            SzError::SzError | SzError::SzRetryableError | SzError::SzDatabaseTransientError
-        )
-    }
-}
+// impl SenzingError<SzDatabaseTransientError> {
+//     pub fn is(&self, szerror: SzError) -> bool {
+//         matches!(
+//             szerror,
+//             SzError::SzError | SzError::SzRetryableError | SzError::SzDatabaseTransientError
+//         )
+//     }
+// }
 
 // impl SenzingError<SzError> {}
 // impl SenzingError<SzGeneralError> {}
 
-impl SenzingError<SzLicenseError> {
-    pub fn is(&self, szerror: SzError) -> bool {
-        matches!(
-            szerror,
-            SzError::SzError | SzError::SzUnrecoverableError | SzError::SzLicenseError
-        )
-    }
-}
-impl SenzingError<SzNotFoundError> {
-    pub fn is(&self, szerror: SzError) -> bool {
-        matches!(
-            szerror,
-            SzError::SzError | SzError::SzBadInputError | SzError::SzNotFoundError
-        )
-    }
-}
-impl SenzingError<SzNotInitializedError> {
-    pub fn is(&self, szerror: SzError) -> bool {
-        matches!(
-            szerror,
-            SzError::SzError | SzError::SzUnrecoverableError | SzError::SzNotInitializedError
-        )
-    }
-}
-impl SenzingError<SzReplaceConflictError> {
-    pub fn is(&self, szerror: SzError) -> bool {
-        matches!(
-            szerror,
-            SzError::SzError | SzError::SzGeneralError | SzError::SzReplaceConflictError
-        )
-    }
-}
+// impl SenzingError<SzLicenseError> {
+//     pub fn is(&self, szerror: SzError) -> bool {
+//         matches!(
+//             szerror,
+//             SzError::SzError | SzError::SzUnrecoverableError | SzError::SzLicenseError
+//         )
+//     }
+// }
+// impl SenzingError<SzNotFoundError> {
+//     pub fn is(&self, szerror: SzError) -> bool {
+//         matches!(
+//             szerror,
+//             SzError::SzError | SzError::SzBadInputError | SzError::SzNotFoundError
+//         )
+//     }
+// }
+// impl SenzingError<SzNotInitializedError> {
+//     pub fn is(&self, szerror: SzError) -> bool {
+//         matches!(
+//             szerror,
+//             SzError::SzError | SzError::SzUnrecoverableError | SzError::SzNotInitializedError
+//         )
+//     }
+// }
+// impl SenzingError<SzReplaceConflictError> {
+//     pub fn is(&self, szerror: SzError) -> bool {
+//         matches!(
+//             szerror,
+//             SzError::SzError | SzError::SzGeneralError | SzError::SzReplaceConflictError
+//         )
+//     }
+// }
 
-// impl SenzingError<SzRetryableError> {}
+// // impl SenzingError<SzRetryableError> {}
 
-impl SenzingError<SzRetryTimeoutExceededError> {
-    pub fn is(&self, szerror: SzError) -> bool {
-        matches!(
-            szerror,
-            SzError::SzError | SzError::SzRetryableError | SzError::SzRetryTimeoutExceededError
-        )
-    }
-}
+// impl SenzingError<SzRetryTimeoutExceededError> {
+//     pub fn is(&self, szerror: SzError) -> bool {
+//         matches!(
+//             szerror,
+//             SzError::SzError | SzError::SzRetryableError | SzError::SzRetryTimeoutExceededError
+//         )
+//     }
+// }
 
-impl SenzingError<SzSdkError> {
-    pub fn is(&self, szerror: SzError) -> bool {
-        matches!(
-            szerror,
-            SzError::SzError | SzError::SzGeneralError | SzError::SzSdkError
-        )
-    }
-}
+// impl SenzingError<SzSdkError> {
+//     pub fn is(&self, szerror: SzError) -> bool {
+//         matches!(
+//             szerror,
+//             SzError::SzError | SzError::SzGeneralError | SzError::SzSdkError
+//         )
+//     }
+// }
 
-impl SenzingError<SzUnknownDataSourceError> {
-    pub fn is(&self, szerror: SzError) -> bool {
-        matches!(
-            szerror,
-            SzError::SzError | SzError::SzBadInputError | SzError::SzUnknownDataSourceError
-        )
-    }
-}
+// impl SenzingError<SzUnknownDataSourceError> {
+//     pub fn is(&self, szerror: SzError) -> bool {
+//         matches!(
+//             szerror,
+//             SzError::SzError | SzError::SzBadInputError | SzError::SzUnknownDataSourceError
+//         )
+//     }
+// }
 
-impl SenzingError<SzUnhandledError> {
-    pub fn is(&self, szerror: SzError) -> bool {
-        matches!(
-            szerror,
-            SzError::SzError | SzError::SzUnrecoverableError | SzError::SzUnhandledError
-        )
-    }
-}
+// impl SenzingError<SzUnhandledError> {
+//     pub fn is(&self, szerror: SzError) -> bool {
+//         matches!(
+//             szerror,
+//             SzError::SzError | SzError::SzUnrecoverableError | SzError::SzUnhandledError
+//         )
+//     }
+// }
 
 // impl SenzingError<SzUnrecoverableError> {}
 
@@ -278,6 +277,10 @@ impl<State: Debug + 'static> SzErrorTrait for SenzingError<State> {
         self.error_type
     }
 
+    fn is(&self, szerror: SzError) -> bool {
+        self.error_hierarchy.contains(&szerror)
+    }
+
     fn message(&self) -> &str {
         &self.message
     }
@@ -300,97 +303,162 @@ impl SenzingError {
                 SzError::SzBadInputError => Box::new(SenzingError::<SzBadInputError> {
                     message,
                     error_type,
+                    error_hierarchy: vec![SzError::SzBadInputError, SzError::SzError],
                     state: std::marker::PhantomData,
                 }),
                 SzError::SzConfigurationError => Box::new(SenzingError::<SzConfigurationError> {
                     message,
                     error_type,
+                    error_hierarchy: vec![
+                        SzError::SzConfigurationError,
+                        SzError::SzGeneralError,
+                        SzError::SzError,
+                    ],
                     state: std::marker::PhantomData,
                 }),
                 SzError::SzDatabaseConnectionLostError => {
                     Box::new(SenzingError::<SzDatabaseConnectionLostError> {
                         message,
                         error_type,
+                        error_hierarchy: vec![
+                            SzError::SzDatabaseConnectionLostError,
+                            SzError::SzRetryableError,
+                            SzError::SzError,
+                        ],
                         state: std::marker::PhantomData,
                     })
                 }
                 SzError::SzDatabaseError => Box::new(SenzingError::<SzDatabaseError> {
                     message,
                     error_type,
+                    error_hierarchy: vec![
+                        SzError::SzDatabaseError,
+                        SzError::SzUnrecoverableError,
+                        SzError::SzError,
+                    ],
                     state: std::marker::PhantomData,
                 }),
                 SzError::SzDatabaseTransientError => {
                     Box::new(SenzingError::<SzDatabaseTransientError> {
                         message,
                         error_type,
+                        error_hierarchy: vec![
+                            SzError::SzDatabaseTransientError,
+                            SzError::SzRetryableError,
+                            SzError::SzError,
+                        ],
                         state: std::marker::PhantomData,
                     })
                 }
                 SzError::SzGeneralError => Box::new(SenzingError::<SzGeneralError> {
                     message,
                     error_type,
+                    error_hierarchy: vec![SzError::SzGeneralError, SzError::SzError],
                     state: std::marker::PhantomData,
                 }),
                 SzError::SzLicenseError => Box::new(SenzingError::<SzLicenseError> {
                     message,
                     error_type,
+                    error_hierarchy: vec![
+                        SzError::SzLicenseError,
+                        SzError::SzUnrecoverableError,
+                        SzError::SzError,
+                    ],
                     state: std::marker::PhantomData,
                 }),
                 SzError::SzNotFoundError => Box::new(SenzingError::<SzNotFoundError> {
                     message,
                     error_type,
+                    error_hierarchy: vec![
+                        SzError::SzNotFoundError,
+                        SzError::SzBadInputError,
+                        SzError::SzError,
+                    ],
                     state: std::marker::PhantomData,
                 }),
                 SzError::SzNotInitializedError => Box::new(SenzingError::<SzNotInitializedError> {
                     message,
                     error_type,
+                    error_hierarchy: vec![
+                        SzError::SzNotInitializedError,
+                        SzError::SzUnrecoverableError,
+                        SzError::SzError,
+                    ],
                     state: std::marker::PhantomData,
                 }),
                 SzError::SzReplaceConflictError => {
                     Box::new(SenzingError::<SzReplaceConflictError> {
                         message,
                         error_type,
+                        error_hierarchy: vec![
+                            SzError::SzReplaceConflictError,
+                            SzError::SzGeneralError,
+                            SzError::SzError,
+                        ],
                         state: std::marker::PhantomData,
                     })
                 }
                 SzError::SzRetryableError => Box::new(SenzingError::<SzRetryableError> {
                     message,
                     error_type,
+                    error_hierarchy: vec![SzError::SzRetryableError, SzError::SzError],
                     state: std::marker::PhantomData,
                 }),
                 SzError::SzRetryTimeoutExceededError => {
                     Box::new(SenzingError::<SzRetryTimeoutExceededError> {
                         message,
                         error_type,
+                        error_hierarchy: vec![
+                            SzError::SzRetryTimeoutExceededError,
+                            SzError::SzRetryableError,
+                            SzError::SzError,
+                        ],
                         state: std::marker::PhantomData,
                     })
                 }
                 SzError::SzSdkError => Box::new(SenzingError::<SzSdkError> {
                     message,
                     error_type,
+                    error_hierarchy: vec![
+                        SzError::SzSdkError,
+                        SzError::SzGeneralError,
+                        SzError::SzError,
+                    ],
                     state: std::marker::PhantomData,
                 }),
                 SzError::SzUnhandledError => Box::new(SenzingError::<SzUnhandledError> {
                     message,
                     error_type,
+                    error_hierarchy: vec![
+                        SzError::SzUnhandledError,
+                        SzError::SzUnrecoverableError,
+                        SzError::SzError,
+                    ],
                     state: std::marker::PhantomData,
                 }),
                 SzError::SzUnknownDataSourceError => {
                     Box::new(SenzingError::<SzUnknownDataSourceError> {
                         message,
                         error_type,
+                        error_hierarchy: vec![
+                            SzError::SzUnknownDataSourceError,
+                            SzError::SzBadInputError,
+                            SzError::SzError,
+                        ],
                         state: std::marker::PhantomData,
                     })
                 }
                 SzError::SzUnrecoverableError => Box::new(SenzingError::<SzUnrecoverableError> {
                     message,
                     error_type,
+                    error_hierarchy: vec![SzError::SzUnrecoverableError, SzError::SzError],
                     state: std::marker::PhantomData,
                 }),
                 // Default case for SzError::SzError or any other variant
                 SzError::SzError => Box::new(SenzingError::<SzError> {
                     message,
                     error_type,
+                    error_hierarchy: vec![SzError::SzError],
                     state: std::marker::PhantomData,
                 }),
             }
@@ -399,6 +467,7 @@ impl SenzingError {
             Box::new(SenzingError::<SzError> {
                 message,
                 error_type: SzError::SzError,
+                error_hierarchy: vec![SzError::SzError],
                 state: std::marker::PhantomData,
             })
         }

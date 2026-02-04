@@ -271,6 +271,7 @@ pub fn mock_senzing_function_error() -> Result<String, Box<dyn std::error::Error
     let senzing_error: SenzingError<crate::errorx::SzBadInputError> = SenzingError {
         message: "The Senzing error".to_string(),
         error_type: Default::default(),
+        error_hierarchy: vec![],
         state: std::marker::PhantomData,
     };
     // Err(Box::new(std::io::Error::other(senzing_error)))
