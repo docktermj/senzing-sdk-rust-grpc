@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::errorx::{SenzingError, SzError, SzErrorTrait};
+use crate::errorx::{SenzingError, SzError, SzErrorTrait, extract_senzing_error};
 
 #[derive(Debug, Default, PartialEq)]
 pub struct TestCase {
@@ -382,19 +382,19 @@ mod test {
                 Ok(senzing_message) => {
                     println!("    Message: {}", senzing_message);
                 }
-                Err(boxed_error) => {
-                    // println!("    >>>>>> boxed error: {:?}", boxed_error);
-                    // Try downcasting to any variation of SenzingError<T>
-                    // let mary: Option<&dyn SzErrorTrait> = crate::try_downcast_senzing_error!(boxed_error);
-                    // println!("    >>>>>> mary: {:?}", mary);
-                    // if let Ok(senzing_error) = boxed_error.downcast::<SenzingError>() {
-
-                    if let Some(senzing_error) = crate::try_downcast_senzing_error!(boxed_error) {
+                Err(err) => {
+                    if let Some(senzing_error) = extract_senzing_error!(err) {
                         // println!("    >>>>>> error_type: {:?}", senzing_error.error_type());
+
+                        match senzing_error {
+                            x if x.is(SzError::SzDatabaseError) => {}
+                            _ => {}
+                        }
+
                         if senzing_error.is(SzError::SzBadInputError) {
                             println!("    >>>>>> testing: SzBadInputError");
                             if let Some(new_err) =
-                                boxed_error.downcast_ref::<SenzingError<SzDatabaseError>>()
+                                err.downcast_ref::<SenzingError<SzDatabaseError>>()
                             {
                                 new_err.mjd_was_here("SzBadInputError".to_string());
                             }
@@ -407,7 +407,7 @@ mod test {
                         } else if senzing_error.is(SzError::SzDatabaseError) {
                             println!("    >>>>>> testing: SzDatabaseError");
                             if let Some(new_err) =
-                                boxed_error.downcast_ref::<SenzingError<SzDatabaseError>>()
+                                err.downcast_ref::<SenzingError<SzDatabaseError>>()
                             {
                                 new_err.mjd_was_here("SzDatabaseError".to_string());
                             }
@@ -420,7 +420,7 @@ mod test {
                         } else if senzing_error.is(SzError::SzGeneralError) {
                             println!("    >>>>>> testing: SzGeneralError");
                             if let Some(new_err) =
-                                boxed_error.downcast_ref::<SenzingError<SzDatabaseError>>()
+                                err.downcast_ref::<SenzingError<SzDatabaseError>>()
                             {
                                 new_err.mjd_was_here("SzGeneralError".to_string());
                             }
@@ -433,7 +433,7 @@ mod test {
                         } else if senzing_error.is(SzError::SzRetryableError) {
                             println!("    >>>>>> testing: SzRetryableError");
                             if let Some(new_err) =
-                                boxed_error.downcast_ref::<SenzingError<SzDatabaseError>>()
+                                err.downcast_ref::<SenzingError<SzDatabaseError>>()
                             {
                                 new_err.mjd_was_here("SzRetryableError".to_string());
                             }
@@ -446,7 +446,7 @@ mod test {
                         } else if senzing_error.is(SzError::SzUnrecoverableError) {
                             println!("    >>>>>> testing: SzUnrecoverableError");
                             if let Some(new_err) =
-                                boxed_error.downcast_ref::<SenzingError<SzDatabaseError>>()
+                                err.downcast_ref::<SenzingError<SzDatabaseError>>()
                             {
                                 new_err.mjd_was_here("SzUnrecoverableError".to_string());
                             }
@@ -459,7 +459,7 @@ mod test {
                         } else if senzing_error.is(SzError::SzError) {
                             println!("    >>>>>> testing: SzError");
                             if let Some(new_err) =
-                                boxed_error.downcast_ref::<SenzingError<SzDatabaseError>>()
+                                err.downcast_ref::<SenzingError<SzDatabaseError>>()
                             {
                                 new_err.mjd_was_here("SzError".to_string());
                             }

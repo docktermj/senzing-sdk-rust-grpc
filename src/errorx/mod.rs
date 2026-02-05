@@ -560,7 +560,7 @@ impl SenzingError {
 /// let mary: Option<&dyn SzErrorTrait> = try_downcast_senzing_error!(boxed_error);
 /// ```
 #[macro_export]
-macro_rules! try_downcast_senzing_error {
+macro_rules! extract_senzing_error {
     ($error:expr) => {
         $error
             .as_ref()
