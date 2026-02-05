@@ -3,6 +3,9 @@ mod tests;
 
 pub mod errortypes;
 
+// Re-export the macro so it's accessible as crate::errorx::extract_senzing_error
+pub use crate::extract_senzing_error;
+
 use serde_json::Value;
 use std::any::Any;
 use std::error::Error;

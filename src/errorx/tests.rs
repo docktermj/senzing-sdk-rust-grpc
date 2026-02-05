@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::errorx::{SenzingError, SzError, SzErrorTrait, extract_senzing_error};
+use crate::errorx::{SenzingError, SzError, SzErrorTrait};
 
 #[derive(Debug, Default, PartialEq)]
 pub struct TestCase {
@@ -292,11 +292,13 @@ pub fn new_error() -> Box<dyn SzErrorTrait> {
 
 mod test {
     use std::boxed;
+    use std::fmt::Debug;
 
     use super::{get_testcases, mock_senzing_function};
 
     use crate::errorx::SzError;
     use crate::errorx::{SenzingError, SzDatabaseError, SzErrorTrait};
+    use crate::extract_senzing_error;
 
     // ------------------------------------------------------------------------
     // Using mock_senzing_function()
