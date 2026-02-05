@@ -291,16 +291,12 @@ pub fn new_error() -> Box<dyn SzErrorTrait> {
 // }
 
 mod test {
+    use std::boxed;
+
     use super::{get_testcases, mock_senzing_function};
 
     use crate::errorx::SzError;
-    use crate::errorx::{
-        SenzingError, SzBadInputError, SzConfigurationError, SzDatabaseConnectionLostError,
-        SzDatabaseError, SzDatabaseTransientError, SzErrorTrait, SzGeneralError, SzLicenseError,
-        SzNotFoundError, SzNotInitializedError, SzReplaceConflictError,
-        SzRetryTimeoutExceededError, SzRetryableError, SzSdkError, SzUnhandledError,
-        SzUnknownDataSourceError, SzUnrecoverableError,
-    };
+    use crate::errorx::{SenzingError, SzDatabaseError, SzErrorTrait};
 
     // ------------------------------------------------------------------------
     // Using mock_senzing_function()
@@ -335,7 +331,7 @@ mod test {
                             SzError::SzDatabaseError => {
                                 let bill = sz_error.downcast::<SenzingError<SzDatabaseError>>();
                                 if let Some(bill_x) = bill {
-                                    bill_x.mjd_was_here();
+                                    bill_x.mjd_was_here("".to_string());
                                 }
                                 if let Some(expected) = testcase_error_type {
                                     assert_eq!(
@@ -387,91 +383,47 @@ mod test {
                     println!("    Message: {}", senzing_message);
                 }
                 Err(boxed_error) => {
-                    println!("    >>>>>> boxed error: {:?}", boxed_error);
-                    let bob = boxed_error.as_ref();
+                    // println!("    >>>>>> boxed error: {:?}", boxed_error);
                     // Try downcasting to any variation of SenzingError<T>
-                    let mary: Option<&dyn SzErrorTrait> = bob
-                        .downcast_ref::<SenzingError<SzBadInputError>>()
-                        .map(|e| e as &dyn SzErrorTrait)
-                        .or_else(|| {
-                            bob.downcast_ref::<SenzingError<SzConfigurationError>>()
-                                .map(|e| e as &dyn SzErrorTrait)
-                        })
-                        .or_else(|| {
-                            bob.downcast_ref::<SenzingError<SzDatabaseConnectionLostError>>()
-                                .map(|e| e as &dyn SzErrorTrait)
-                        })
-                        .or_else(|| {
-                            bob.downcast_ref::<SenzingError<SzDatabaseError>>()
-                                .map(|e| e as &dyn SzErrorTrait)
-                        })
-                        .or_else(|| {
-                            bob.downcast_ref::<SenzingError<SzDatabaseTransientError>>()
-                                .map(|e| e as &dyn SzErrorTrait)
-                        })
-                        .or_else(|| {
-                            bob.downcast_ref::<SenzingError<SzGeneralError>>()
-                                .map(|e| e as &dyn SzErrorTrait)
-                        })
-                        .or_else(|| {
-                            bob.downcast_ref::<SenzingError<SzLicenseError>>()
-                                .map(|e| e as &dyn SzErrorTrait)
-                        })
-                        .or_else(|| {
-                            bob.downcast_ref::<SenzingError<SzNotFoundError>>()
-                                .map(|e| e as &dyn SzErrorTrait)
-                        })
-                        .or_else(|| {
-                            bob.downcast_ref::<SenzingError<SzNotInitializedError>>()
-                                .map(|e| e as &dyn SzErrorTrait)
-                        })
-                        .or_else(|| {
-                            bob.downcast_ref::<SenzingError<SzReplaceConflictError>>()
-                                .map(|e| e as &dyn SzErrorTrait)
-                        })
-                        .or_else(|| {
-                            bob.downcast_ref::<SenzingError<SzRetryableError>>()
-                                .map(|e| e as &dyn SzErrorTrait)
-                        })
-                        .or_else(|| {
-                            bob.downcast_ref::<SenzingError<SzRetryTimeoutExceededError>>()
-                                .map(|e| e as &dyn SzErrorTrait)
-                        })
-                        .or_else(|| {
-                            bob.downcast_ref::<SenzingError<SzSdkError>>()
-                                .map(|e| e as &dyn SzErrorTrait)
-                        })
-                        .or_else(|| {
-                            bob.downcast_ref::<SenzingError<SzUnhandledError>>()
-                                .map(|e| e as &dyn SzErrorTrait)
-                        })
-                        .or_else(|| {
-                            bob.downcast_ref::<SenzingError<SzUnknownDataSourceError>>()
-                                .map(|e| e as &dyn SzErrorTrait)
-                        })
-                        .or_else(|| {
-                            bob.downcast_ref::<SenzingError<SzUnrecoverableError>>()
-                                .map(|e| e as &dyn SzErrorTrait)
-                        })
-                        .or_else(|| {
-                            bob.downcast_ref::<SenzingError<SzError>>()
-                                .map(|e| e as &dyn SzErrorTrait)
-                        });
-                    println!("    >>>>>> mary: {:?}", mary);
+                    // let mary: Option<&dyn SzErrorTrait> = crate::try_downcast_senzing_error!(boxed_error);
+                    // println!("    >>>>>> mary: {:?}", mary);
                     // if let Ok(senzing_error) = boxed_error.downcast::<SenzingError>() {
 
-                    if let Some(senzing_error) = mary {
-                        println!("    >>>>>> error_type: {:?}", senzing_error.error_type());
+                    if let Some(senzing_error) = crate::try_downcast_senzing_error!(boxed_error) {
+                        // println!("    >>>>>> error_type: {:?}", senzing_error.error_type());
                         if senzing_error.is(SzError::SzBadInputError) {
                             println!("    >>>>>> testing: SzBadInputError");
+                            if let Some(new_err) =
+                                boxed_error.downcast_ref::<SenzingError<SzDatabaseError>>()
+                            {
+                                new_err.mjd_was_here("SzBadInputError".to_string());
+                            }
                             assert_eq!(
                                 testcase_error_type_parent,
                                 SzError::SzBadInputError,
                                 "testcase={}",
                                 testcase_name
                             );
+                        } else if senzing_error.is(SzError::SzDatabaseError) {
+                            println!("    >>>>>> testing: SzDatabaseError");
+                            if let Some(new_err) =
+                                boxed_error.downcast_ref::<SenzingError<SzDatabaseError>>()
+                            {
+                                new_err.mjd_was_here("SzDatabaseError".to_string());
+                            }
+                            assert_eq!(
+                                testcase_error_type_parent,
+                                SzError::SzUnrecoverableError,
+                                "testcase={}",
+                                testcase_name
+                            );
                         } else if senzing_error.is(SzError::SzGeneralError) {
                             println!("    >>>>>> testing: SzGeneralError");
+                            if let Some(new_err) =
+                                boxed_error.downcast_ref::<SenzingError<SzDatabaseError>>()
+                            {
+                                new_err.mjd_was_here("SzGeneralError".to_string());
+                            }
                             assert_eq!(
                                 testcase_error_type_parent,
                                 SzError::SzGeneralError,
@@ -480,6 +432,11 @@ mod test {
                             );
                         } else if senzing_error.is(SzError::SzRetryableError) {
                             println!("    >>>>>> testing: SzRetryableError");
+                            if let Some(new_err) =
+                                boxed_error.downcast_ref::<SenzingError<SzDatabaseError>>()
+                            {
+                                new_err.mjd_was_here("SzRetryableError".to_string());
+                            }
                             assert_eq!(
                                 testcase_error_type_parent,
                                 SzError::SzRetryableError,
@@ -488,6 +445,11 @@ mod test {
                             );
                         } else if senzing_error.is(SzError::SzUnrecoverableError) {
                             println!("    >>>>>> testing: SzUnrecoverableError");
+                            if let Some(new_err) =
+                                boxed_error.downcast_ref::<SenzingError<SzDatabaseError>>()
+                            {
+                                new_err.mjd_was_here("SzUnrecoverableError".to_string());
+                            }
                             assert_eq!(
                                 testcase_error_type_parent,
                                 SzError::SzUnrecoverableError,
@@ -496,6 +458,11 @@ mod test {
                             );
                         } else if senzing_error.is(SzError::SzError) {
                             println!("    >>>>>> testing: SzError");
+                            if let Some(new_err) =
+                                boxed_error.downcast_ref::<SenzingError<SzDatabaseError>>()
+                            {
+                                new_err.mjd_was_here("SzError".to_string());
+                            }
                             assert_eq!(
                                 testcase_error_type_parent,
                                 SzError::SzError,

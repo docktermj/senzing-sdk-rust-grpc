@@ -3,7 +3,6 @@ mod tests;
 
 pub mod errortypes;
 
-use core::error;
 use serde_json::Value;
 use std::any::Any;
 use std::error::Error;
@@ -139,7 +138,9 @@ pub struct SenzingError<State = SzError> {
 // }
 
 impl SenzingError<SzDatabaseError> {
-    pub fn mjd_was_here(&self) {}
+    pub fn mjd_was_here(&self, suffix: String) {
+        println!("    >>>>>> MJD was here! Suffix: {}", suffix)
+    }
 
     // pub fn is(&self, szerror: SzError) -> bool {
     //     matches!(
@@ -533,6 +534,135 @@ impl SenzingError {
             })
         }
     }
+}
+
+// ----------------------------------------------------------------------------
+// Macros
+// ----------------------------------------------------------------------------
+
+/// Attempts to downcast a `Box<dyn Error>` to `Option<&dyn SzErrorTrait>`.
+///
+/// This macro tries to downcast the error to all possible `SenzingError<T>` variants
+/// and returns the first successful match as `&dyn SzErrorTrait`.
+///
+/// # Arguments
+///
+/// * `$error` - A boxed error (`Box<dyn Error>`)
+///
+/// # Returns
+///
+/// * `Option<&dyn SzErrorTrait>` - Some if the error is any variant of `SenzingError<T>`, None otherwise
+///
+/// # Example
+///
+/// ```ignore
+/// let boxed_error: Box<dyn Error> = get_some_error();
+/// let mary: Option<&dyn SzErrorTrait> = try_downcast_senzing_error!(boxed_error);
+/// ```
+#[macro_export]
+macro_rules! try_downcast_senzing_error {
+    ($error:expr) => {
+        $error
+            .as_ref()
+            .downcast_ref::<$crate::errorx::SenzingError<$crate::errorx::SzBadInputError>>()
+            .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
+            .or_else(|| {
+                $error
+                    .as_ref()
+                    .downcast_ref::<$crate::errorx::SenzingError<$crate::errorx::SzConfigurationError>>()
+                    .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
+            })
+            .or_else(|| {
+                $error
+                    .as_ref()
+                    .downcast_ref::<$crate::errorx::SenzingError<$crate::errorx::SzDatabaseConnectionLostError>>()
+                    .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
+            })
+            .or_else(|| {
+                $error
+                    .as_ref()
+                    .downcast_ref::<$crate::errorx::SenzingError<$crate::errorx::SzDatabaseError>>()
+                    .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
+            })
+            .or_else(|| {
+                $error
+                    .as_ref()
+                    .downcast_ref::<$crate::errorx::SenzingError<$crate::errorx::SzDatabaseTransientError>>()
+                    .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
+            })
+            .or_else(|| {
+                $error
+                    .as_ref()
+                    .downcast_ref::<$crate::errorx::SenzingError<$crate::errorx::SzGeneralError>>()
+                    .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
+            })
+            .or_else(|| {
+                $error
+                    .as_ref()
+                    .downcast_ref::<$crate::errorx::SenzingError<$crate::errorx::SzLicenseError>>()
+                    .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
+            })
+            .or_else(|| {
+                $error
+                    .as_ref()
+                    .downcast_ref::<$crate::errorx::SenzingError<$crate::errorx::SzNotFoundError>>()
+                    .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
+            })
+            .or_else(|| {
+                $error
+                    .as_ref()
+                    .downcast_ref::<$crate::errorx::SenzingError<$crate::errorx::SzNotInitializedError>>()
+                    .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
+            })
+            .or_else(|| {
+                $error
+                    .as_ref()
+                    .downcast_ref::<$crate::errorx::SenzingError<$crate::errorx::SzReplaceConflictError>>()
+                    .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
+            })
+            .or_else(|| {
+                $error
+                    .as_ref()
+                    .downcast_ref::<$crate::errorx::SenzingError<$crate::errorx::SzRetryableError>>()
+                    .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
+            })
+            .or_else(|| {
+                $error
+                    .as_ref()
+                    .downcast_ref::<$crate::errorx::SenzingError<$crate::errorx::SzRetryTimeoutExceededError>>()
+                    .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
+            })
+            .or_else(|| {
+                $error
+                    .as_ref()
+                    .downcast_ref::<$crate::errorx::SenzingError<$crate::errorx::SzSdkError>>()
+                    .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
+            })
+            .or_else(|| {
+                $error
+                    .as_ref()
+                    .downcast_ref::<$crate::errorx::SenzingError<$crate::errorx::SzUnhandledError>>()
+                    .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
+            })
+            .or_else(|| {
+                $error
+                    .as_ref()
+                    .downcast_ref::<$crate::errorx::SenzingError<$crate::errorx::SzUnknownDataSourceError>>()
+                    .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
+            })
+            .or_else(|| {
+                $error
+                    .as_ref()
+                    .downcast_ref::<$crate::errorx::SenzingError<$crate::errorx::SzUnrecoverableError>>()
+                    .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
+            })
+            .or_else(|| {
+                $error
+                    .as_ref()
+                    .downcast_ref::<$crate::errorx::SenzingError<$crate::errorx::SzError>>()
+                    .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
+            })
+    };
 }
 
 // ----------------------------------------------------------------------------
