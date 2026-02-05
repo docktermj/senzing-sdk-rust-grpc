@@ -385,9 +385,14 @@ mod test {
                     println!("    Message: {}", senzing_message);
                 }
                 Err(boxed_error) => {
-                    println!(">>>>>> boxed error: {:?}", boxed_error);
-                    if let Ok(senzing_error) = boxed_error.downcast::<SenzingError>() {
-                        println!(">>>>>> error_type: {:?}", senzing_error.error_type);
+                    println!("    >>>>>> boxed error: {:?}", boxed_error);
+                    let bob = boxed_error.as_ref();
+                    let mary = bob.downcast_ref::<SenzingError<SzDatabaseError>>();
+                    println!("    >>>>>> mary: {:?}", mary);
+                    // if let Ok(senzing_error) = boxed_error.downcast::<SenzingError>() {
+
+                    if let Some(senzing_error) = mary {
+                        println!("    >>>>>> error_type: {:?}", senzing_error.error_type);
                         if senzing_error.is(SzError::SzBadInputError) {
                             assert_eq!(
                                 testcase_error_type_parent,
@@ -416,16 +421,23 @@ mod test {
                                 "testcase={}",
                                 testcase_name
                             );
-                        } else {
+                        } else if senzing_error.is(SzError::SzError) {
                             assert_eq!(
                                 testcase_error_type_parent,
                                 SzError::SzError,
                                 "testcase={}",
                                 testcase_name
                             );
+                        } else {
+                            assert_eq!(
+                                testcase_error_type_parent,
+                                SzError::SzError,
+                                "testcase={} - else",
+                                testcase_name
+                            );
                         }
                     } else {
-                        println!("    ERROR: Not a SenzingError. (downcast failed)")
+                        println!("    >>>>>> Not a SenzingError. (downcast failed)")
                     }
                 }
             }

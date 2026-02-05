@@ -282,7 +282,7 @@ impl<State: Debug + 'static> SzErrorTrait for SenzingError<State> {
     fn is(&self, szerror: SzError) -> bool {
         let result = self.error_hierarchy.contains(&szerror);
         println!(
-            ">>>>>> {:?} in {:?} is {}",
+            "    >>>>>> is: {:?} in {:?} = {}",
             szerror, self.error_hierarchy, result
         );
         result
@@ -306,10 +306,9 @@ impl SenzingError {
     pub fn new(message: String) -> Box<dyn SzErrorTrait> {
         let error_type_x = extract_error_type(&message);
         if let Some(error_type) = error_type_x {
-            println!(">>>>>> if let Some: {:?}", error_type);
             match error_type {
                 SzError::SzBadInputError => {
-                    println!(">>>>> Found SzBadInputError");
+                    println!("    >>>>>> Creating SzBadInputError");
                     Box::new(SenzingError::<SzBadInputError> {
                         message,
                         error_type,
@@ -318,7 +317,7 @@ impl SenzingError {
                     })
                 }
                 SzError::SzConfigurationError => {
-                    println!(">>>>> Found SzConfigurationError");
+                    println!("    >>>>>> Creating SzConfigurationError");
                     Box::new(SenzingError::<SzConfigurationError> {
                         message,
                         error_type,
@@ -331,7 +330,7 @@ impl SenzingError {
                     })
                 }
                 SzError::SzDatabaseConnectionLostError => {
-                    println!(">>>>> Found SzDatabaseConnectionLostError");
+                    println!("    >>>>>> Creating SzDatabaseConnectionLostError");
                     Box::new(SenzingError::<SzDatabaseConnectionLostError> {
                         message,
                         error_type,
@@ -344,7 +343,7 @@ impl SenzingError {
                     })
                 }
                 SzError::SzDatabaseError => {
-                    println!(">>>>> Found SzDatabaseError");
+                    println!("    >>>>>> Creating SzDatabaseError");
                     Box::new(SenzingError::<SzDatabaseError> {
                         message,
                         error_type,
@@ -357,7 +356,7 @@ impl SenzingError {
                     })
                 }
                 SzError::SzDatabaseTransientError => {
-                    println!(">>>>> Found SzDatabaseTransientError");
+                    println!("    >>>>>> Creating SzDatabaseTransientError");
                     Box::new(SenzingError::<SzDatabaseTransientError> {
                         message,
                         error_type,
@@ -370,7 +369,7 @@ impl SenzingError {
                     })
                 }
                 SzError::SzGeneralError => {
-                    println!(">>>>> Found SzGeneralError");
+                    println!("    >>>>>> Creating SzGeneralError");
                     Box::new(SenzingError::<SzGeneralError> {
                         message,
                         error_type,
@@ -379,7 +378,7 @@ impl SenzingError {
                     })
                 }
                 SzError::SzLicenseError => {
-                    println!(">>>>> Found SzLicenseError");
+                    println!("    >>>>>> Creating SzLicenseError");
                     Box::new(SenzingError::<SzLicenseError> {
                         message,
                         error_type,
@@ -392,7 +391,7 @@ impl SenzingError {
                     })
                 }
                 SzError::SzNotFoundError => {
-                    println!(">>>>> Found SzNotFoundError");
+                    println!("    >>>>>> Creating SzNotFoundError");
                     Box::new(SenzingError::<SzNotFoundError> {
                         message,
                         error_type,
@@ -405,7 +404,7 @@ impl SenzingError {
                     })
                 }
                 SzError::SzNotInitializedError => {
-                    println!(">>>>> Found SzNotInitializedError");
+                    println!("    >>>>>> Creating SzNotInitializedError");
                     Box::new(SenzingError::<SzNotInitializedError> {
                         message,
                         error_type,
@@ -418,7 +417,7 @@ impl SenzingError {
                     })
                 }
                 SzError::SzReplaceConflictError => {
-                    println!(">>>>> Found SzReplaceConflictError");
+                    println!("    >>>>>> Creating SzReplaceConflictError");
                     Box::new(SenzingError::<SzReplaceConflictError> {
                         message,
                         error_type,
@@ -431,7 +430,7 @@ impl SenzingError {
                     })
                 }
                 SzError::SzRetryableError => {
-                    println!(">>>>> Found SzRetryableError");
+                    println!("    >>>>>> Creating SzRetryableError");
                     Box::new(SenzingError::<SzRetryableError> {
                         message,
                         error_type,
@@ -440,7 +439,7 @@ impl SenzingError {
                     })
                 }
                 SzError::SzRetryTimeoutExceededError => {
-                    println!(">>>>> Found SzRetryTimeoutExceededError");
+                    println!("    >>>>>> Creating SzRetryTimeoutExceededError");
                     Box::new(SenzingError::<SzRetryTimeoutExceededError> {
                         message,
                         error_type,
@@ -453,7 +452,7 @@ impl SenzingError {
                     })
                 }
                 SzError::SzSdkError => {
-                    println!(">>>>> Found SzSdkError");
+                    println!("    >>>>>> Creating SzSdkError");
                     Box::new(SenzingError::<SzSdkError> {
                         message,
                         error_type,
@@ -466,7 +465,7 @@ impl SenzingError {
                     })
                 }
                 SzError::SzUnhandledError => {
-                    println!(">>>>> Found SzUnhandledError");
+                    println!("    >>>>>> Creating SzUnhandledError");
                     Box::new(SenzingError::<SzUnhandledError> {
                         message,
                         error_type,
@@ -479,7 +478,7 @@ impl SenzingError {
                     })
                 }
                 SzError::SzUnknownDataSourceError => {
-                    println!(">>>>> Found SzUnknownDataSourceError");
+                    println!("    >>>>>> Creating SzUnknownDataSourceError");
                     Box::new(SenzingError::<SzUnknownDataSourceError> {
                         message,
                         error_type,
@@ -492,7 +491,7 @@ impl SenzingError {
                     })
                 }
                 SzError::SzUnrecoverableError => {
-                    println!(">>>>> Found SzUnrecoverableError");
+                    println!("    >>>>>> Creating SzUnrecoverableError");
                     Box::new(SenzingError::<SzUnrecoverableError> {
                         message,
                         error_type,
@@ -501,7 +500,7 @@ impl SenzingError {
                     })
                 }
                 SzError::SzError => {
-                    println!(">>>>> Found SzError");
+                    println!("    >>>>>> Creating SzError");
                     Box::new(SenzingError::<SzError> {
                         message,
                         error_type,
@@ -510,7 +509,7 @@ impl SenzingError {
                     })
                 }
                 SzError::DebugError => {
-                    println!(">>>>> Found DebugError");
+                    println!("    >>>>>> Creating DebugError");
                     Box::new(SenzingError::<SzError> {
                         // FIXME:
                         message,
@@ -523,7 +522,7 @@ impl SenzingError {
         } else {
             // No error type could be extracted, return generic SzError variant
             println!(
-                ">>>>>> Could not create typed SenzingError. error-type: {:?}",
+                "    >>>>>> Could not create typed SenzingError. error-type: {:?}",
                 error_type_x
             );
             Box::new(SenzingError::<SzError> {
@@ -541,13 +540,11 @@ impl SenzingError {
 // ----------------------------------------------------------------------------
 
 fn extract_error_type(message: &str) -> Option<SzError> {
-    let result = extract_json_from_message(message)
+    extract_json_from_message(message)
         .and_then(|json_str| serde_json::from_str::<Value>(&json_str).ok())
         .and_then(|json_value| extract_reason_from_json(&json_value))
         .and_then(|reason| extract_error_id_from_reason(&reason))
-        .and_then(get_error_type_for_error_id);
-    println!(">>>>>> extract_error_type: {:?}", result);
-    result
+        .and_then(get_error_type_for_error_id)
 }
 
 fn extract_json_from_message(message: &str) -> Option<String> {
@@ -680,10 +677,5 @@ fn extract_error_id_from_reason(reason: &str) -> Option<i32> {
 }
 
 fn get_error_type_for_error_id(error_id: i32) -> Option<SzError> {
-    let result = errortypes::SZ_ERROR_TYPES.get(&error_id).copied();
-    println!(
-        ">>>>>> get_error_type_for_error_id: {} is {:?}",
-        error_id, result
-    );
-    result
+    errortypes::SZ_ERROR_TYPES.get(&error_id).copied()
 }
