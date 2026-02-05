@@ -463,6 +463,7 @@ mod test {
                     if let Some(senzing_error) = mary {
                         println!("    >>>>>> error_type: {:?}", senzing_error.error_type());
                         if senzing_error.is(SzError::SzBadInputError) {
+                            println!("    >>>>>> testing: SzBadInputError");
                             assert_eq!(
                                 testcase_error_type_parent,
                                 SzError::SzBadInputError,
@@ -470,6 +471,7 @@ mod test {
                                 testcase_name
                             );
                         } else if senzing_error.is(SzError::SzGeneralError) {
+                            println!("    >>>>>> testing: SzGeneralError");
                             assert_eq!(
                                 testcase_error_type_parent,
                                 SzError::SzGeneralError,
@@ -477,6 +479,7 @@ mod test {
                                 testcase_name
                             );
                         } else if senzing_error.is(SzError::SzRetryableError) {
+                            println!("    >>>>>> testing: SzRetryableError");
                             assert_eq!(
                                 testcase_error_type_parent,
                                 SzError::SzRetryableError,
@@ -484,6 +487,7 @@ mod test {
                                 testcase_name
                             );
                         } else if senzing_error.is(SzError::SzUnrecoverableError) {
+                            println!("    >>>>>> testing: SzUnrecoverableError");
                             assert_eq!(
                                 testcase_error_type_parent,
                                 SzError::SzUnrecoverableError,
@@ -491,6 +495,7 @@ mod test {
                                 testcase_name
                             );
                         } else if senzing_error.is(SzError::SzError) {
+                            println!("    >>>>>> testing: SzError");
                             assert_eq!(
                                 testcase_error_type_parent,
                                 SzError::SzError,
@@ -498,6 +503,7 @@ mod test {
                                 testcase_name
                             );
                         } else {
+                            println!("    >>>>>> testing: No Parent");
                             assert_eq!(
                                 testcase_error_type_parent,
                                 SzError::SzError,
