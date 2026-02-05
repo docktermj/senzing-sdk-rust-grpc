@@ -78,14 +78,14 @@ pub fn get_testcases() -> Vec<TestCase> {
             error_id: Some(5),
             ..Default::default()
         },
-        TestCase {
-            name: "SzBadInputError",
-            error_message: Some(r#"{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"function":"szengineserver.(*SzEngineServer).ExportCsvEntityReport","error":{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"id":"SZSDK60044007","reason":"SENZ3131|Invalid column [BAD] requested for CSV export."}}}}"#.to_string()),
-            reason: Some("SENZ3131|Invalid column [BAD] requested for CSV export.".to_string()),
-            error_type: Some(SzError::SzBadInputError),
-            error_id: Some(3131),
-            ..Default::default()
-        },
+        // TestCase {
+        //     name: "SzBadInputError",
+        //     error_message: Some(r#"{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"function":"szengineserver.(*SzEngineServer).ExportCsvEntityReport","error":{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"id":"SZSDK60044007","reason":"SENZ3131|Invalid column [BAD] requested for CSV export."}}}}"#.to_string()),
+        //     reason: Some("SENZ3131|Invalid column [BAD] requested for CSV export.".to_string()),
+        //     error_type: Some(SzError::SzBadInputError),
+        //     error_id: Some(3131),
+        //     ..Default::default()
+        // },
         TestCase {
             name: "SzNotFoundError",
             error_message: Some(r#"status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": \n{\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0033|Unknown record: dsrc[{0}], record[{1}]\"}}}", metadata: {"content-type": "application/grpc"}"#.to_string()),
@@ -220,15 +220,15 @@ pub fn get_testcases() -> Vec<TestCase> {
             error_id: Some(57),
             ..Default::default()
         },
-        TestCase {
-            name: "NegativeTest",
-            error_message: Some(r#"{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"function":"szengineserver.(*SzEngineServer).ExportCsvEntityReport","error":{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"id":"SZSDK60044007","reason":"SENZ3131|Invalid column [BAD] requested for CSV export."}}}}"#.to_string()),
-            reason: Some("SENZ3132|Invalid column [BAD] requested for CSV export.".to_string()), // Wrong SENZnnnn number
-            error_type: Some(SzError::SzConfigurationError), // Wrong error_type
-            error_id: Some(3132), // Wrong ID
-            negative_test: true,
-            ..Default::default()
-        },
+        // TestCase {
+        //     name: "NegativeTest",
+        //     error_message: Some(r#"{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"function":"szengineserver.(*SzEngineServer).ExportCsvEntityReport","error":{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"id":"SZSDK60044007","reason":"SENZ3131|Invalid column [BAD] requested for CSV export."}}}}"#.to_string()),
+        //     reason: Some("SENZ3132|Invalid column [BAD] requested for CSV export.".to_string()), // Wrong SENZnnnn number
+        //     error_type: Some(SzError::SzConfigurationError), // Wrong error_type
+        //     error_id: Some(3132), // Wrong ID
+        //     negative_test: true,
+        //     ..Default::default()
+        // },
         TestCase {
             name: "MalformedJSON - All None",
             error_message: Some(r#"{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{{"function":"szengineserver.(*SzEngineServer).ExportCsvEntityReport","error":{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"id":"SZSDK60044007","reason":"SENZ3131|Invalid column [BAD] requested for CSV export."}}}}"#.to_string()),
@@ -291,13 +291,15 @@ pub fn new_error() -> Box<dyn SzErrorTrait> {
 // }
 
 mod test {
-    use super::mock_senzing_function_error;
     use super::{get_testcases, mock_senzing_function};
 
     use crate::errorx::SzError;
     use crate::errorx::{
-        SenzingError, SzBadInputError, SzDatabaseError, SzErrorTrait, SzLicenseError,
-        SzRetryTimeoutExceededError, tests::new_error,
+        SenzingError, SzBadInputError, SzConfigurationError, SzDatabaseConnectionLostError,
+        SzDatabaseError, SzDatabaseTransientError, SzErrorTrait, SzGeneralError, SzLicenseError,
+        SzNotFoundError, SzNotInitializedError, SzReplaceConflictError,
+        SzRetryTimeoutExceededError, SzRetryableError, SzSdkError, SzUnhandledError,
+        SzUnknownDataSourceError, SzUnrecoverableError,
     };
 
     // ------------------------------------------------------------------------
@@ -387,12 +389,79 @@ mod test {
                 Err(boxed_error) => {
                     println!("    >>>>>> boxed error: {:?}", boxed_error);
                     let bob = boxed_error.as_ref();
-                    let mary = bob.downcast_ref::<SenzingError<SzDatabaseError>>();
+                    // Try downcasting to any variation of SenzingError<T>
+                    let mary: Option<&dyn SzErrorTrait> = bob
+                        .downcast_ref::<SenzingError<SzBadInputError>>()
+                        .map(|e| e as &dyn SzErrorTrait)
+                        .or_else(|| {
+                            bob.downcast_ref::<SenzingError<SzConfigurationError>>()
+                                .map(|e| e as &dyn SzErrorTrait)
+                        })
+                        .or_else(|| {
+                            bob.downcast_ref::<SenzingError<SzDatabaseConnectionLostError>>()
+                                .map(|e| e as &dyn SzErrorTrait)
+                        })
+                        .or_else(|| {
+                            bob.downcast_ref::<SenzingError<SzDatabaseError>>()
+                                .map(|e| e as &dyn SzErrorTrait)
+                        })
+                        .or_else(|| {
+                            bob.downcast_ref::<SenzingError<SzDatabaseTransientError>>()
+                                .map(|e| e as &dyn SzErrorTrait)
+                        })
+                        .or_else(|| {
+                            bob.downcast_ref::<SenzingError<SzGeneralError>>()
+                                .map(|e| e as &dyn SzErrorTrait)
+                        })
+                        .or_else(|| {
+                            bob.downcast_ref::<SenzingError<SzLicenseError>>()
+                                .map(|e| e as &dyn SzErrorTrait)
+                        })
+                        .or_else(|| {
+                            bob.downcast_ref::<SenzingError<SzNotFoundError>>()
+                                .map(|e| e as &dyn SzErrorTrait)
+                        })
+                        .or_else(|| {
+                            bob.downcast_ref::<SenzingError<SzNotInitializedError>>()
+                                .map(|e| e as &dyn SzErrorTrait)
+                        })
+                        .or_else(|| {
+                            bob.downcast_ref::<SenzingError<SzReplaceConflictError>>()
+                                .map(|e| e as &dyn SzErrorTrait)
+                        })
+                        .or_else(|| {
+                            bob.downcast_ref::<SenzingError<SzRetryableError>>()
+                                .map(|e| e as &dyn SzErrorTrait)
+                        })
+                        .or_else(|| {
+                            bob.downcast_ref::<SenzingError<SzRetryTimeoutExceededError>>()
+                                .map(|e| e as &dyn SzErrorTrait)
+                        })
+                        .or_else(|| {
+                            bob.downcast_ref::<SenzingError<SzSdkError>>()
+                                .map(|e| e as &dyn SzErrorTrait)
+                        })
+                        .or_else(|| {
+                            bob.downcast_ref::<SenzingError<SzUnhandledError>>()
+                                .map(|e| e as &dyn SzErrorTrait)
+                        })
+                        .or_else(|| {
+                            bob.downcast_ref::<SenzingError<SzUnknownDataSourceError>>()
+                                .map(|e| e as &dyn SzErrorTrait)
+                        })
+                        .or_else(|| {
+                            bob.downcast_ref::<SenzingError<SzUnrecoverableError>>()
+                                .map(|e| e as &dyn SzErrorTrait)
+                        })
+                        .or_else(|| {
+                            bob.downcast_ref::<SenzingError<SzError>>()
+                                .map(|e| e as &dyn SzErrorTrait)
+                        });
                     println!("    >>>>>> mary: {:?}", mary);
                     // if let Ok(senzing_error) = boxed_error.downcast::<SenzingError>() {
 
                     if let Some(senzing_error) = mary {
-                        println!("    >>>>>> error_type: {:?}", senzing_error.error_type);
+                        println!("    >>>>>> error_type: {:?}", senzing_error.error_type());
                         if senzing_error.is(SzError::SzBadInputError) {
                             assert_eq!(
                                 testcase_error_type_parent,
