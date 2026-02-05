@@ -11,9 +11,28 @@ mod test {
     use crate::extract_senzing_error;
 
     #[test]
-    #[allow(path_statements)]
-    fn test_is_normal_type() {
-        is_normal::<SzError>;
+    fn test_trait_default_default() {
+        let test_senzing_error = SzError::<SzDatabaseError>::default();
+        println!("Default: {}", test_senzing_error)
+    }
+
+    #[test]
+    fn test_trait_display_fmt() {
+        let testcases = get_testcases();
+        for testcase in testcases {
+            println!("{}", testcase.name);
+            let senzing_result = mock_senzing_function(testcase);
+            match senzing_result {
+                Ok(senzing_message) => {
+                    println!("    Message: {}", senzing_message);
+                }
+                Err(err) => {
+                    if let Some(senzing_error) = extract_senzing_error!(err) {
+                        println!("    {}", senzing_error)
+                    }
+                }
+            }
+        }
     }
 
     #[test]
@@ -158,6 +177,12 @@ mod test {
             }
         }
     }
+
+    #[test]
+    #[allow(path_statements)]
+    fn test_is_normal_type() {
+        is_normal::<SzError>;
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -175,7 +200,7 @@ pub fn mock_senzing_function(testcase: TestCase) -> Result<String, Box<dyn std::
 }
 
 // ----------------------------------------------------------------------------
-// Testcases
+// Testcase data
 // ----------------------------------------------------------------------------
 
 #[derive(Debug, Default, PartialEq)]

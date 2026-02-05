@@ -35,7 +35,7 @@ pub struct SzConfigurationError;
 #[derive(Debug)]
 pub struct SzDatabaseConnectionLostError;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SzDatabaseError;
 
 #[derive(Debug)]
@@ -141,14 +141,6 @@ impl SzError<SzDatabaseError> {
 // impl SzError<SzUnrecoverableError> {}
 
 impl<State: 'static> SzError<State> {
-    // pub fn message(self) -> String {
-    //     self.message
-    // }
-
-    // pub fn error_type(&self) -> SzErrorTypes {
-    //     self.error_type
-    // }
-
     /// Attempts to downcast this error to a specific SzError type.
     ///
     /// # Returns
