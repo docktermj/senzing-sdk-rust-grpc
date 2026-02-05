@@ -178,7 +178,7 @@ pub fn get_testcases() -> Vec<TestCase> {
         // },
         TestCase {
             name: "SzDatabaseError",
-            error_message: Some(r#"status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": \n{\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0054|Data repository was purged"}}}", metadata: {"content-type": "application/grpc"}"#.to_string()),
+            error_message: Some(r#"status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": \n{\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0054|Data repository was purged\"}}}", metadata: {"content-type": "application/grpc"}"#.to_string()),
             reason: Some("SENZ0054|Data repository was purged".to_string()),
             error_type: Some(SzError::SzDatabaseError),
             error_type_parent: Some(SzError::SzUnrecoverableError),
@@ -187,7 +187,7 @@ pub fn get_testcases() -> Vec<TestCase> {
         },
         TestCase {
             name: "SzLicenseError",
-            error_message: Some(r#"status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": \n{\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0999|License has expired. {0}"}}}", metadata: {"content-type": "application/grpc"}"#.to_string()),
+            error_message: Some(r#"status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": \n{\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0999|License has expired. {0}\"}}}", metadata: {"content-type": "application/grpc"}"#.to_string()),
             reason: Some("SENZ0999|License has expired. {0}".to_string()),
             error_type: Some(SzError::SzLicenseError),
             error_type_parent: Some(SzError::SzUnrecoverableError),
@@ -196,7 +196,7 @@ pub fn get_testcases() -> Vec<TestCase> {
         },
         TestCase {
             name: "SzNotInitializedError",
-            error_message: Some(r#"status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": \n{\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0048|SDK is not initialized"}}}", metadata: {"content-type": "application/grpc"}"#.to_string()),
+            error_message: Some(r#"status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": \n{\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0048|SDK is not initialized\"}}}", metadata: {"content-type": "application/grpc"}"#.to_string()),
             reason: Some("SENZ0048|SDK is not initialized".to_string()),
             error_type: Some(SzError::SzNotInitializedError),
             error_type_parent: Some(SzError::SzUnrecoverableError),
@@ -205,7 +205,7 @@ pub fn get_testcases() -> Vec<TestCase> {
         },
         TestCase {
             name: "SzUnhandledError",
-            error_message: Some(r#"status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": \n{\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0087|Sz Exception '{0}'"}}}", metadata: {"content-type": "application/grpc"}"#.to_string()),
+            error_message: Some(r#"status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": \n{\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0087|Sz Exception '{0}'\"}}}", metadata: {"content-type": "application/grpc"}"#.to_string()),
             reason: Some("SENZ0087|Sz Exception '{0}'".to_string()),
             error_type: Some(SzError::SzUnhandledError),
             error_type_parent: Some(SzError::SzUnrecoverableError),
@@ -385,8 +385,9 @@ mod test {
                     println!("    Message: {}", senzing_message);
                 }
                 Err(boxed_error) => {
-                    if let Ok(boxed_senzing_error) = boxed_error.downcast::<SenzingError>() {
-                        let senzing_error = boxed_senzing_error.as_ref();
+                    println!(">>>>>> boxed error: {:?}", boxed_error);
+                    if let Ok(senzing_error) = boxed_error.downcast::<SenzingError>() {
+                        println!(">>>>>> error_type: {:?}", senzing_error.error_type);
                         if senzing_error.is(SzError::SzBadInputError) {
                             assert_eq!(
                                 testcase_error_type_parent,
