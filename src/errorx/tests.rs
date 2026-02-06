@@ -1,4 +1,3 @@
-use crate::errorx::SzErrorTrait;
 #[cfg(test)]
 use crate::errorx::{SzError, SzErrorTypes};
 
@@ -8,8 +7,9 @@ use crate::errorx::{SzError, SzErrorTypes};
 
 mod test {
     use super::{get_testcase, get_testcases, mock_senzing_function};
-    use crate::error::SenzingError;
-    use crate::errorx::{SzBadInputError, SzDatabaseError, SzError, SzErrorTypes, is_normal};
+    use crate::errorx::{
+        SzDatabaseError, SzError, SzErrorTypes, SzNotFoundError, is_normal,
+    };
     use crate::extract_senzing_error;
 
     #[test]
@@ -37,19 +37,24 @@ mod test {
         }
     }
 
-    // #[test]
-    // fn test_trait_display_mjd() {
-    //     let testcase = get_testcase();
-    //     let senzing_result = mock_senzing_function(testcase);
-    //     match senzing_result {
-    //         Ok(senzing_message) => {
-    //             println!("    Message: {}", senzing_message);
-    //         }
-    //         Err(err) if extract_senzing_error!(err) => {}
-    //         Err(err) => if SzError::is_senzing_retryable(err) {},
-    //         Err(_) => {}
-    //     }
-    // }
+    #[test]
+    fn test_trait_display_mjd() {
+        let testcase = get_testcase();
+        let senzing_result = mock_senzing_function(testcase);
+        match senzing_result {
+            Ok(senzing_message) => {
+                println!("    Message: {}", senzing_message);
+            }
+            // Err(ref err) if err.downcast_ref::<SzError<SzNotFoundError>>().is_some() => {}
+            Err(ref e) if SzError::error_is(e, SzError::<SzNotFoundError>::default()) => {/* handle */}
+            Err(e) if e.to_string().contains("timeout") => { /* handle timeout */ }
+            Err(e) if e.to_string().contains("connection") => { /* handle connection error */ }
+            // Err(err) if extract_senzing_error!(err) => {}
+            Err(err) if SzError::is_senzing_retryable_error(&err) => { /* handle */ }
+            Err(err) if SzError::is_senzing_error(&err) => { /* handle */ }
+            Err(_) => {} // Err(_) => { /* handle other errors */ }
+        }
+    }
 
     #[test]
     fn test_senzing_error_types_using_if_else() {

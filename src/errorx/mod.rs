@@ -31,52 +31,52 @@ pub trait SzErrorTrait: Debug + Display + Error + Any {
 // Structs
 // ----------------------------------------------------------------------------
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SzBadInputError;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SzConfigurationError;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SzDatabaseConnectionLostError;
 
 #[derive(Debug, Default)]
 pub struct SzDatabaseError;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SzDatabaseTransientError;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SzGeneralError;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SzLicenseError;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SzNotFoundError;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SzNotInitializedError;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SzReplaceConflictError;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SzRetryableError;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SzRetryTimeoutExceededError;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SzSdkError;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SzUnhandledError;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SzUnknownDataSourceError;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SzUnrecoverableError;
 
 // ----------------------------------------------------------------------------
@@ -390,7 +390,31 @@ impl SzError {
         }
     }
 
-    pub fn is_senzing_retryable(err: Box<dyn Error>) -> bool {
+    pub fn error_is(err: &Box<dyn Error>, senzing_type: impl SzErrorTrait) -> bool {
+        let target_type_id = senzing_type.as_any().type_id();
+
+        // Check the error itself
+        if let Some(senzing_error) = extract_senzing_error!(err) {
+            if senzing_error.as_any().type_id() == target_type_id {
+                return true;
+            }
+        }
+
+        // Walk the source chain
+        let mut source = err.source();
+        while let Some(err) = source {
+            if let Some(senzing_error) = extract_senzing_error!(err) {
+                if senzing_error.as_any().type_id() == target_type_id {
+                    return true;
+                }
+            }
+            source = err.source();
+        }
+
+        false
+    }
+
+    pub fn is_senzing_retryable_error(err: &Box<dyn Error>) -> bool {
         // Check the error itself
         if let Some(senzing_error) = extract_senzing_error!(err) {
             return senzing_error.is_retryable_error();
@@ -406,7 +430,7 @@ impl SzError {
         false
     }
 
-    pub fn is_senzing_error(err: Box<dyn Error>) -> bool {
+    pub fn is_senzing_error(err: &Box<dyn Error>) -> bool {
         // Check the error itself
         if let Some(senzing_error) = extract_senzing_error!(err) {
             return senzing_error.is_senzing_error();
