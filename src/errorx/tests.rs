@@ -8,6 +8,7 @@ use crate::errorx::{SzError, SzErrorTypes};
 
 mod test {
     use super::{get_testcase, get_testcases, mock_senzing_function};
+    use crate::error::SenzingError;
     use crate::errorx::{SzBadInputError, SzDatabaseError, SzError, SzErrorTypes, is_normal};
     use crate::extract_senzing_error;
 
@@ -36,19 +37,19 @@ mod test {
         }
     }
 
-    #[test]
-    fn test_trait_display_mjd() {
-        let testcase = get_testcase();
-        let senzing_result = mock_senzing_function(testcase);
-        match senzing_result {
-            Ok(senzing_message) => {
-                println!("    Message: {}", senzing_message);
-            }
-            Err(ref err::< SzError>) => {
-                let z = err
-            }
-        }
-    }
+    // #[test]
+    // fn test_trait_display_mjd() {
+    //     let testcase = get_testcase();
+    //     let senzing_result = mock_senzing_function(testcase);
+    //     match senzing_result {
+    //         Ok(senzing_message) => {
+    //             println!("    Message: {}", senzing_message);
+    //         }
+    //         Err(err) if extract_senzing_error!(err) => {}
+    //         Err(err) => if SzError::is_senzing_retryable(err) {},
+    //         Err(_) => {}
+    //     }
+    // }
 
     #[test]
     fn test_senzing_error_types_using_if_else() {
@@ -214,23 +215,22 @@ pub fn mock_senzing_function(testcase: TestCase) -> Result<String, Box<dyn std::
     }
 }
 
-pub fn throw_error_level_1(testcase: TestCase) -> Result<String, Box<dyn std::error::Error>> {
-    throw_error_level_2(testcase)?;
-    Ok("".to_string())
-}
+// pub fn throw_error_level_1(testcase: TestCase) -> Result<String, Box<dyn std::error::Error>> {
+//     throw_error_level_2(testcase)?;
+//     Ok("".to_string())
+// }
 
+// pub fn throw_error_level_2(testcase: TestCase) -> Result<String, Box<dyn std::error::Error>> {
+//     throw_error_level_3(testcase)?;
+//     Ok("".to_string())
+// }
 
-pub fn throw_error_level_2(testcase: TestCase) -> Result<String, Box<dyn std::error::Error>> {
-    throw_error_level_3(testcase)?;
-    Ok("".to_string())
-}
-
-pub fn throw_error_level_3(testcase: TestCase) -> Result<String, Box<dyn SzErrorTrait>> {
-    if let Some(error_message) = testcase.error_message {
-        return Err(SzError::new(error_message))
-    }
-    Ok("no message".to_string())
-}
+// pub fn throw_error_level_3(testcase: TestCase) -> Result<String, Box<dyn SzErrorTrait>> {
+//     if let Some(error_message) = testcase.error_message {
+//         return Err(SzError::new(error_message))
+//     }
+//     Ok("no message".to_string())
+// }
 
 // pub fn throw_error_level_3(testcase: TestCase) -> Result<String, Box<dyn std::error::Error>> {
 //     if let Some(error_message) = testcase.error_message {

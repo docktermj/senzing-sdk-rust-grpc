@@ -16,10 +16,15 @@ use std::fmt::{Debug, Display, Formatter, Result};
 // ----------------------------------------------------------------------------
 
 pub trait SzErrorTrait: Debug + Display + Error + Any {
-    fn kind(&self, szerror: SzErrorTypes) -> bool;
-    fn error_type(&self) -> SzErrorTypes;
-    fn message(&self) -> &str;
     fn as_any(&self) -> &dyn Any;
+    fn error_type(&self) -> SzErrorTypes;
+    fn is_bad_input_error(&self) -> bool;
+    fn is_general_error(&self) -> bool;
+    fn is_retryable_error(&self) -> bool;
+    fn is_senzing_error(&self) -> bool;
+    fn is_unrecoverable_error(&self) -> bool;
+    fn kind(&self, szerror: SzErrorTypes) -> bool;
+    fn message(&self) -> &str;
 }
 
 // ----------------------------------------------------------------------------
@@ -115,6 +120,7 @@ pub struct SzError<State = SzErrorTypes> {
     is_bad_input_error: bool,
     is_general_error: bool,
     is_retryable_error: bool,
+    is_senzing_error: bool,
     is_unrecoverable_error: bool,
     message: String,
     state: std::marker::PhantomData<State>,
@@ -183,6 +189,26 @@ impl<State: Debug + 'static> SzErrorTrait for SzError<State> {
 
     fn error_type(&self) -> SzErrorTypes {
         self.error_type
+    }
+
+    fn is_bad_input_error(&self) -> bool {
+        self.is_bad_input_error
+    }
+
+    fn is_general_error(&self) -> bool {
+        self.is_general_error
+    }
+
+    fn is_retryable_error(&self) -> bool {
+        self.is_retryable_error
+    }
+
+    fn is_senzing_error(&self) -> bool {
+        self.is_senzing_error
+    }
+
+    fn is_unrecoverable_error(&self) -> bool {
+        self.is_unrecoverable_error
     }
 
     fn kind(&self, szerror: SzErrorTypes) -> bool {
@@ -363,6 +389,54 @@ impl SzError {
             ))
         }
     }
+
+    pub fn is_senzing_retryable(err: Box<dyn Error>) -> bool {
+        // Check the error itself
+        if let Some(senzing_error) = extract_senzing_error!(err) {
+            return senzing_error.is_retryable_error();
+        }
+        // Walk the source chain
+        let mut source = err.source();
+        while let Some(err) = source {
+            if let Some(senzing_error) = extract_senzing_error!(err) {
+                return senzing_error.is_retryable_error();
+            }
+            source = err.source();
+        }
+        false
+    }
+
+    pub fn is_senzing_error(err: Box<dyn Error>) -> bool {
+        // Check the error itself
+        if let Some(senzing_error) = extract_senzing_error!(err) {
+            return senzing_error.is_senzing_error();
+        }
+        // Walk the source chain
+        let mut source = err.source();
+        while let Some(err2) = source {
+            if let Some(senzing_error) = extract_senzing_error!(err2) {
+                return senzing_error.is_senzing_error();
+            }
+            source = err2.source();
+        }
+        false
+    }
+
+    // pub fn is_senzing_retryable_x(err: &(dyn std::error::Error + 'static)) -> bool {
+    //     // Check the error itself
+    //     if let Some(sz) = try_downcast_to_senzing_error(err) {
+    //         return sz.is_retryable_error();
+    //     }
+    //     // Walk the source chain
+    //     let mut source = err.source();
+    //     while let Some(err) = source {
+    //         if let Some(sz) = try_downcast_to_senzing_error(err) {
+    //             return sz.is_retryable_error();
+    //         }
+    //         source = err.source();
+    //     }
+    //     false
+    // }
 }
 
 // ----------------------------------------------------------------------------
@@ -391,103 +465,86 @@ impl SzError {
 #[macro_export]
 macro_rules! extract_senzing_error {
     ($error:expr) => {
-        $error
-            .as_ref()
+        (&*$error)
             .downcast_ref::<$crate::errorx::SzError<$crate::errorx::SzBadInputError>>()
             .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
             .or_else(|| {
-                $error
-                    .as_ref()
+                (&*$error)
                     .downcast_ref::<$crate::errorx::SzError<$crate::errorx::SzConfigurationError>>()
                     .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
             })
             .or_else(|| {
-                $error
-                    .as_ref()
+                (&*$error)
                     .downcast_ref::<$crate::errorx::SzError<$crate::errorx::SzDatabaseConnectionLostError>>()
                     .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
             })
             .or_else(|| {
-                $error
-                    .as_ref()
+                (&*$error)
                     .downcast_ref::<$crate::errorx::SzError<$crate::errorx::SzDatabaseError>>()
                     .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
             })
             .or_else(|| {
-                $error
-                    .as_ref()
+                (&*$error)
                     .downcast_ref::<$crate::errorx::SzError<$crate::errorx::SzDatabaseTransientError>>()
                     .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
             })
             .or_else(|| {
-                $error
-                    .as_ref()
+                (&*$error)
                     .downcast_ref::<$crate::errorx::SzError<$crate::errorx::SzGeneralError>>()
                     .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
             })
             .or_else(|| {
-                $error
-                    .as_ref()
+                (&*$error)
                     .downcast_ref::<$crate::errorx::SzError<$crate::errorx::SzLicenseError>>()
                     .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
             })
             .or_else(|| {
-                $error
-                    .as_ref()
+                (&*$error)
                     .downcast_ref::<$crate::errorx::SzError<$crate::errorx::SzNotFoundError>>()
                     .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
             })
             .or_else(|| {
-                $error
-                    .as_ref()
+                (&*$error)
                     .downcast_ref::<$crate::errorx::SzError<$crate::errorx::SzNotInitializedError>>()
                     .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
             })
             .or_else(|| {
-                $error
-                    .as_ref()
+                (&*$error)
                     .downcast_ref::<$crate::errorx::SzError<$crate::errorx::SzReplaceConflictError>>()
                     .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
             })
             .or_else(|| {
-                $error
-                    .as_ref()
+                (&*$error)
                     .downcast_ref::<$crate::errorx::SzError<$crate::errorx::SzRetryableError>>()
                     .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
             })
             .or_else(|| {
-                $error
-                    .as_ref()
+                (&*$error)
                     .downcast_ref::<$crate::errorx::SzError<$crate::errorx::SzRetryTimeoutExceededError>>()
                     .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
             })
             .or_else(|| {
-                $error
-                    .as_ref()
+                (&*$error)
                     .downcast_ref::<$crate::errorx::SzError<$crate::errorx::SzSdkError>>()
                     .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
             })
             .or_else(|| {
-                $error
-                    .as_ref()
+                (&*$error)
                     .downcast_ref::<$crate::errorx::SzError<$crate::errorx::SzUnhandledError>>()
                     .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
             })
             .or_else(|| {
-                $error
-                    .as_ref()
+                (&*$error)
                     .downcast_ref::<$crate::errorx::SzError<$crate::errorx::SzUnknownDataSourceError>>()
                     .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
             })
             .or_else(|| {
-                $error
-                    .as_ref()
+                (&*$error)
                     .downcast_ref::<$crate::errorx::SzError<$crate::errorx::SzUnrecoverableError>>()
                     .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
             })
             .or_else(|| {
-                $error
-                    .as_ref()
+                (&*$error)
                     .downcast_ref::<$crate::errorx::SzError<$crate::errorx::SzError>>()
                     .map(|e| e as &dyn $crate::errorx::SzErrorTrait)
             })
@@ -510,13 +567,14 @@ fn create_sz_error<State>(
     let is_unrecoverable_error = error_hierarchy.contains(&SzErrorTypes::UnrecoverableError);
 
     SzError {
-        message,
-        error_type,
         error_hierarchy,
+        error_type,
         is_bad_input_error,
         is_general_error,
         is_retryable_error,
+        is_senzing_error: true,
         is_unrecoverable_error,
+        message,
         state: std::marker::PhantomData,
     }
 }
