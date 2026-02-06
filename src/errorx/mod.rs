@@ -16,7 +16,7 @@ use std::fmt::{Debug, Display, Formatter, Result};
 // ----------------------------------------------------------------------------
 
 pub trait SzErrorTrait: Debug + Display + Error + Any {
-    fn is(&self, szerror: SzErrorTypes) -> bool;
+    fn kind(&self, szerror: SzErrorTypes) -> bool;
     fn error_type(&self) -> SzErrorTypes;
     fn message(&self) -> &str;
     fn as_any(&self) -> &dyn Any;
@@ -110,9 +110,13 @@ pub enum SzErrorTypes {
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[non_exhaustive]
 pub struct SzError<State = SzErrorTypes> {
-    message: String,
-    error_type: SzErrorTypes,
     error_hierarchy: Vec<SzErrorTypes>,
+    error_type: SzErrorTypes,
+    is_bad_input_error: bool,
+    is_general_error: bool,
+    is_retryable_error: bool,
+    is_unrecoverable_error: bool,
+    message: String,
     state: std::marker::PhantomData<State>,
 }
 
@@ -181,7 +185,7 @@ impl<State: Debug + 'static> SzErrorTrait for SzError<State> {
         self.error_type
     }
 
-    fn is(&self, szerror: SzErrorTypes) -> bool {
+    fn kind(&self, szerror: SzErrorTypes) -> bool {
         self.error_hierarchy.contains(&szerror)
     }
 
@@ -200,173 +204,163 @@ impl SzError {
         let error_type_x = extract_error_type(&message);
         if let Some(error_type) = error_type_x {
             match error_type {
-                SzErrorTypes::BadInputError => Box::new(SzError::<SzBadInputError> {
+                SzErrorTypes::BadInputError => Box::new(create_sz_error::<SzBadInputError>(
                     message,
                     error_type,
-                    error_hierarchy: vec![SzErrorTypes::BadInputError, SzErrorTypes::Error],
-                    state: std::marker::PhantomData,
-                }),
-                SzErrorTypes::ConfigurationError => Box::new(SzError::<SzConfigurationError> {
-                    message,
-                    error_type,
-                    error_hierarchy: vec![
-                        SzErrorTypes::ConfigurationError,
-                        SzErrorTypes::GeneralError,
-                        SzErrorTypes::Error,
-                    ],
-                    state: std::marker::PhantomData,
-                }),
-                SzErrorTypes::DatabaseConnectionLostError => {
-                    Box::new(SzError::<SzDatabaseConnectionLostError> {
+                    vec![SzErrorTypes::BadInputError, SzErrorTypes::Error],
+                )),
+                SzErrorTypes::ConfigurationError => {
+                    Box::new(create_sz_error::<SzConfigurationError>(
                         message,
                         error_type,
-                        error_hierarchy: vec![
+                        vec![
+                            SzErrorTypes::ConfigurationError,
+                            SzErrorTypes::GeneralError,
+                            SzErrorTypes::Error,
+                        ],
+                    ))
+                }
+                SzErrorTypes::DatabaseConnectionLostError => {
+                    Box::new(create_sz_error::<SzDatabaseConnectionLostError>(
+                        message,
+                        error_type,
+                        vec![
                             SzErrorTypes::DatabaseConnectionLostError,
                             SzErrorTypes::RetryableError,
                             SzErrorTypes::Error,
                         ],
-                        state: std::marker::PhantomData,
-                    })
+                    ))
                 }
-                SzErrorTypes::DatabaseError => Box::new(SzError::<SzDatabaseError> {
+                SzErrorTypes::DatabaseError => Box::new(create_sz_error::<SzDatabaseError>(
                     message,
                     error_type,
-                    error_hierarchy: vec![
+                    vec![
                         SzErrorTypes::DatabaseError,
                         SzErrorTypes::UnrecoverableError,
                         SzErrorTypes::Error,
                     ],
-                    state: std::marker::PhantomData,
-                }),
+                )),
                 SzErrorTypes::DatabaseTransientError => {
-                    Box::new(SzError::<SzDatabaseTransientError> {
+                    Box::new(create_sz_error::<SzDatabaseTransientError>(
                         message,
                         error_type,
-                        error_hierarchy: vec![
+                        vec![
                             SzErrorTypes::DatabaseTransientError,
                             SzErrorTypes::RetryableError,
                             SzErrorTypes::Error,
                         ],
-                        state: std::marker::PhantomData,
-                    })
+                    ))
                 }
-                SzErrorTypes::GeneralError => Box::new(SzError::<SzGeneralError> {
+                SzErrorTypes::GeneralError => Box::new(create_sz_error::<SzGeneralError>(
                     message,
                     error_type,
-                    error_hierarchy: vec![SzErrorTypes::GeneralError, SzErrorTypes::Error],
-                    state: std::marker::PhantomData,
-                }),
-                SzErrorTypes::LicenseError => Box::new(SzError::<SzLicenseError> {
+                    vec![SzErrorTypes::GeneralError, SzErrorTypes::Error],
+                )),
+                SzErrorTypes::LicenseError => Box::new(create_sz_error::<SzLicenseError>(
                     message,
                     error_type,
-                    error_hierarchy: vec![
+                    vec![
                         SzErrorTypes::LicenseError,
                         SzErrorTypes::UnrecoverableError,
                         SzErrorTypes::Error,
                     ],
-                    state: std::marker::PhantomData,
-                }),
-                SzErrorTypes::NotFoundError => Box::new(SzError::<SzNotFoundError> {
+                )),
+                SzErrorTypes::NotFoundError => Box::new(create_sz_error::<SzNotFoundError>(
                     message,
                     error_type,
-                    error_hierarchy: vec![
+                    vec![
                         SzErrorTypes::NotFoundError,
                         SzErrorTypes::BadInputError,
                         SzErrorTypes::Error,
                     ],
-                    state: std::marker::PhantomData,
-                }),
-                SzErrorTypes::NotInitializedError => Box::new(SzError::<SzNotInitializedError> {
-                    message,
-                    error_type,
-                    error_hierarchy: vec![
-                        SzErrorTypes::NotInitializedError,
-                        SzErrorTypes::UnrecoverableError,
-                        SzErrorTypes::Error,
-                    ],
-                    state: std::marker::PhantomData,
-                }),
-                SzErrorTypes::ReplaceConflictError => Box::new(SzError::<SzReplaceConflictError> {
-                    message,
-                    error_type,
-                    error_hierarchy: vec![
-                        SzErrorTypes::ReplaceConflictError,
-                        SzErrorTypes::GeneralError,
-                        SzErrorTypes::Error,
-                    ],
-                    state: std::marker::PhantomData,
-                }),
-                SzErrorTypes::RetryableError => Box::new(SzError::<SzRetryableError> {
-                    message,
-                    error_type,
-                    error_hierarchy: vec![SzErrorTypes::RetryableError, SzErrorTypes::Error],
-                    state: std::marker::PhantomData,
-                }),
-                SzErrorTypes::RetryTimeoutExceededError => {
-                    Box::new(SzError::<SzRetryTimeoutExceededError> {
+                )),
+                SzErrorTypes::NotInitializedError => {
+                    Box::new(create_sz_error::<SzNotInitializedError>(
                         message,
                         error_type,
-                        error_hierarchy: vec![
+                        vec![
+                            SzErrorTypes::NotInitializedError,
+                            SzErrorTypes::UnrecoverableError,
+                            SzErrorTypes::Error,
+                        ],
+                    ))
+                }
+                SzErrorTypes::ReplaceConflictError => {
+                    Box::new(create_sz_error::<SzReplaceConflictError>(
+                        message,
+                        error_type,
+                        vec![
+                            SzErrorTypes::ReplaceConflictError,
+                            SzErrorTypes::GeneralError,
+                            SzErrorTypes::Error,
+                        ],
+                    ))
+                }
+                SzErrorTypes::RetryableError => Box::new(create_sz_error::<SzRetryableError>(
+                    message,
+                    error_type,
+                    vec![SzErrorTypes::RetryableError, SzErrorTypes::Error],
+                )),
+                SzErrorTypes::RetryTimeoutExceededError => {
+                    Box::new(create_sz_error::<SzRetryTimeoutExceededError>(
+                        message,
+                        error_type,
+                        vec![
                             SzErrorTypes::RetryTimeoutExceededError,
                             SzErrorTypes::RetryableError,
                             SzErrorTypes::Error,
                         ],
-                        state: std::marker::PhantomData,
-                    })
+                    ))
                 }
-                SzErrorTypes::SdkError => Box::new(SzError::<SzSdkError> {
+                SzErrorTypes::SdkError => Box::new(create_sz_error::<SzSdkError>(
                     message,
                     error_type,
-                    error_hierarchy: vec![
+                    vec![
                         SzErrorTypes::SdkError,
                         SzErrorTypes::GeneralError,
                         SzErrorTypes::Error,
                     ],
-                    state: std::marker::PhantomData,
-                }),
-                SzErrorTypes::UnhandledError => Box::new(SzError::<SzUnhandledError> {
+                )),
+                SzErrorTypes::UnhandledError => Box::new(create_sz_error::<SzUnhandledError>(
                     message,
                     error_type,
-                    error_hierarchy: vec![
+                    vec![
                         SzErrorTypes::UnhandledError,
                         SzErrorTypes::UnrecoverableError,
                         SzErrorTypes::Error,
                     ],
-                    state: std::marker::PhantomData,
-                }),
+                )),
                 SzErrorTypes::UnknownDataSourceError => {
-                    Box::new(SzError::<SzUnknownDataSourceError> {
+                    Box::new(create_sz_error::<SzUnknownDataSourceError>(
                         message,
                         error_type,
-                        error_hierarchy: vec![
+                        vec![
                             SzErrorTypes::UnknownDataSourceError,
                             SzErrorTypes::BadInputError,
                             SzErrorTypes::Error,
                         ],
-                        state: std::marker::PhantomData,
-                    })
+                    ))
                 }
-                SzErrorTypes::UnrecoverableError => Box::new(SzError::<SzUnrecoverableError> {
+                SzErrorTypes::UnrecoverableError => {
+                    Box::new(create_sz_error::<SzUnrecoverableError>(
+                        message,
+                        error_type,
+                        vec![SzErrorTypes::UnrecoverableError, SzErrorTypes::Error],
+                    ))
+                }
+                SzErrorTypes::Error => Box::new(create_sz_error::<SzErrorTypes>(
                     message,
                     error_type,
-                    error_hierarchy: vec![SzErrorTypes::UnrecoverableError, SzErrorTypes::Error],
-                    state: std::marker::PhantomData,
-                }),
-                SzErrorTypes::Error => Box::new(SzError::<SzErrorTypes> {
-                    message,
-                    error_type,
-                    error_hierarchy: vec![SzErrorTypes::Error],
-                    state: std::marker::PhantomData,
-                }),
+                    vec![SzErrorTypes::Error],
+                )),
             }
         } else {
             // No error type could be extracted, return generic SzError variant.
-            Box::new(SzError::<SzErrorTypes> {
+            Box::new(create_sz_error::<SzErrorTypes>(
                 message,
-                error_type: SzErrorTypes::Error,
-                error_hierarchy: vec![SzErrorTypes::Error],
-                state: std::marker::PhantomData,
-            })
+                SzErrorTypes::Error,
+                vec![SzErrorTypes::Error],
+            ))
         }
     }
 }
@@ -503,6 +497,29 @@ macro_rules! extract_senzing_error {
 // ----------------------------------------------------------------------------
 // Private functions
 // ----------------------------------------------------------------------------
+
+/// Helper function to create an SzError with computed boolean flags from hierarchy
+fn create_sz_error<State>(
+    message: String,
+    error_type: SzErrorTypes,
+    error_hierarchy: Vec<SzErrorTypes>,
+) -> SzError<State> {
+    let is_bad_input_error = error_hierarchy.contains(&SzErrorTypes::BadInputError);
+    let is_general_error = error_hierarchy.contains(&SzErrorTypes::GeneralError);
+    let is_retryable_error = error_hierarchy.contains(&SzErrorTypes::RetryableError);
+    let is_unrecoverable_error = error_hierarchy.contains(&SzErrorTypes::UnrecoverableError);
+
+    SzError {
+        message,
+        error_type,
+        error_hierarchy,
+        is_bad_input_error,
+        is_general_error,
+        is_retryable_error,
+        is_unrecoverable_error,
+        state: std::marker::PhantomData,
+    }
+}
 
 fn extract_error_type(message: &str) -> Option<SzErrorTypes> {
     extract_json_from_message(message)

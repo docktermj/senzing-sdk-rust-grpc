@@ -1,3 +1,4 @@
+use crate::errorx::SzErrorTrait;
 #[cfg(test)]
 use crate::errorx::{SzError, SzErrorTypes};
 
@@ -6,8 +7,8 @@ use crate::errorx::{SzError, SzErrorTypes};
 // ----------------------------------------------------------------------------
 
 mod test {
-    use super::{get_testcases, mock_senzing_function};
-    use crate::errorx::{SzDatabaseError, SzError, SzErrorTypes, is_normal};
+    use super::{get_testcase, get_testcases, mock_senzing_function};
+    use crate::errorx::{SzBadInputError, SzDatabaseError, SzError, SzErrorTypes, is_normal};
     use crate::extract_senzing_error;
 
     #[test]
@@ -36,6 +37,20 @@ mod test {
     }
 
     #[test]
+    fn test_trait_display_mjd() {
+        let testcase = get_testcase();
+        let senzing_result = mock_senzing_function(testcase);
+        match senzing_result {
+            Ok(senzing_message) => {
+                println!("    Message: {}", senzing_message);
+            }
+            Err(ref err::< SzError>) => {
+                let z = err
+            }
+        }
+    }
+
+    #[test]
     fn test_senzing_error_types_using_if_else() {
         let testcases = get_testcases();
         for testcase in testcases {
@@ -51,7 +66,7 @@ mod test {
                 Err(err) => {
                     if let Some(expected_error_type_parent) = testcase_error_type_parent {
                         if let Some(senzing_error) = extract_senzing_error!(err) {
-                            if senzing_error.is(SzErrorTypes::BadInputError) {
+                            if senzing_error.kind(SzErrorTypes::BadInputError) {
                                 println!("    is an SzBadInputError");
                                 assert_eq!(
                                     expected_error_type_parent,
@@ -59,7 +74,7 @@ mod test {
                                     "testcase={}",
                                     testcase_name
                                 );
-                            } else if senzing_error.is(SzErrorTypes::GeneralError) {
+                            } else if senzing_error.kind(SzErrorTypes::GeneralError) {
                                 println!("    is an SzGeneralError");
                                 assert_eq!(
                                     expected_error_type_parent,
@@ -67,7 +82,7 @@ mod test {
                                     "testcase={}",
                                     testcase_name
                                 );
-                            } else if senzing_error.is(SzErrorTypes::RetryableError) {
+                            } else if senzing_error.kind(SzErrorTypes::RetryableError) {
                                 println!("    is an SzRetryableError");
                                 assert_eq!(
                                     expected_error_type_parent,
@@ -75,7 +90,7 @@ mod test {
                                     "testcase={}",
                                     testcase_name
                                 );
-                            } else if senzing_error.is(SzErrorTypes::UnrecoverableError) {
+                            } else if senzing_error.kind(SzErrorTypes::UnrecoverableError) {
                                 println!("    is an SzUnrecoverableError");
                                 if let Some(new_err) =
                                     err.downcast_ref::<SzError<SzDatabaseError>>()
@@ -88,7 +103,7 @@ mod test {
                                     "testcase={}",
                                     testcase_name
                                 );
-                            } else if senzing_error.is(SzErrorTypes::Error) {
+                            } else if senzing_error.kind(SzErrorTypes::Error) {
                                 println!("    is an SzError");
                                 assert_eq!(
                                     expected_error_type_parent,
@@ -125,7 +140,7 @@ mod test {
                     if let Some(expected_error_type_parent) = testcase_error_type_parent {
                         if let Some(senzing_error) = extract_senzing_error!(err) {
                             match senzing_error {
-                                x if x.is(SzErrorTypes::BadInputError) => {
+                                x if x.kind(SzErrorTypes::BadInputError) => {
                                     assert_eq!(
                                         expected_error_type_parent,
                                         SzErrorTypes::BadInputError,
@@ -133,7 +148,7 @@ mod test {
                                         testcase_name
                                     )
                                 }
-                                x if x.is(SzErrorTypes::GeneralError) => {
+                                x if x.kind(SzErrorTypes::GeneralError) => {
                                     assert_eq!(
                                         expected_error_type_parent,
                                         SzErrorTypes::GeneralError,
@@ -141,7 +156,7 @@ mod test {
                                         testcase_name
                                     )
                                 }
-                                x if x.is(SzErrorTypes::RetryableError) => {
+                                x if x.kind(SzErrorTypes::RetryableError) => {
                                     assert_eq!(
                                         expected_error_type_parent,
                                         SzErrorTypes::RetryableError,
@@ -149,7 +164,7 @@ mod test {
                                         testcase_name
                                     )
                                 }
-                                x if x.is(SzErrorTypes::UnrecoverableError) => {
+                                x if x.kind(SzErrorTypes::UnrecoverableError) => {
                                     assert_eq!(
                                         expected_error_type_parent,
                                         SzErrorTypes::UnrecoverableError,
@@ -157,7 +172,7 @@ mod test {
                                         testcase_name
                                     )
                                 }
-                                x if x.is(SzErrorTypes::Error) => {
+                                x if x.kind(SzErrorTypes::Error) => {
                                     assert_eq!(
                                         expected_error_type_parent,
                                         SzErrorTypes::Error,
@@ -199,6 +214,34 @@ pub fn mock_senzing_function(testcase: TestCase) -> Result<String, Box<dyn std::
     }
 }
 
+pub fn throw_error_level_1(testcase: TestCase) -> Result<String, Box<dyn std::error::Error>> {
+    throw_error_level_2(testcase)?;
+    Ok("".to_string())
+}
+
+
+pub fn throw_error_level_2(testcase: TestCase) -> Result<String, Box<dyn std::error::Error>> {
+    throw_error_level_3(testcase)?;
+    Ok("".to_string())
+}
+
+pub fn throw_error_level_3(testcase: TestCase) -> Result<String, Box<dyn SzErrorTrait>> {
+    if let Some(error_message) = testcase.error_message {
+        return Err(SzError::new(error_message))
+    }
+    Ok("no message".to_string())
+}
+
+// pub fn throw_error_level_3(testcase: TestCase) -> Result<String, Box<dyn std::error::Error>> {
+//     if let Some(error_message) = testcase.error_message {
+//         Err(SzError::new(error_message))
+//     } else if let Some(return_message) = testcase.return_message {
+//         Ok(return_message)
+//     } else {
+//         Err(Box::new(std::io::Error::other("Not a SzError")))
+//     }
+// }
+
 // ----------------------------------------------------------------------------
 // Testcase data
 // ----------------------------------------------------------------------------
@@ -217,6 +260,17 @@ pub struct TestCase {
     pub is_not_a_senzing_error: bool, // Defaults to false.
     pub reason: Option<String>,
     pub return_message: Option<String>,
+}
+
+pub fn get_testcase() -> TestCase {
+    TestCase {
+            name: "SzBadInputError",
+            error_message: Some(r#"{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"function":"szengineserver.(*SzEngineServer).ExportCsvEntityReport","error":{"function":"szengine.(*Szengine).ExportCsvEntityReport","error":{"id":"SZSDK60044007","reason":"SENZ3131|Invalid column [BAD] requested for CSV export."}}}}"#.to_string()),
+            reason: Some("SENZ3131|Invalid column [BAD] requested for CSV export.".to_string()),
+            error_type: Some(SzErrorTypes::BadInputError),
+            error_id: Some(3131),
+            ..Default::default()
+        }
 }
 
 pub fn get_testcases() -> Vec<TestCase> {
