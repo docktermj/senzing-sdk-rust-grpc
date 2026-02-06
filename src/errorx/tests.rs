@@ -7,9 +7,7 @@ use crate::errorx::{SzError, SzErrorTypes};
 
 mod test {
     use super::{get_testcase, get_testcases, mock_senzing_function};
-    use crate::errorx::{
-        SzDatabaseError, SzError, SzErrorTypes, SzNotFoundError, is_normal,
-    };
+    use crate::errorx::{SzDatabaseError, SzError, SzErrorTypes, SzNotFoundError, is_normal};
     use crate::extract_senzing_error;
 
     #[test]
@@ -46,12 +44,13 @@ mod test {
                 println!("    Message: {}", senzing_message);
             }
             // Err(ref err) if err.downcast_ref::<SzError<SzNotFoundError>>().is_some() => {}
-            Err(ref e) if SzError::error_is(e, SzError::<SzNotFoundError>::default()) => {/* handle */}
+            Err(ref e) if SzError::error_is(&**e, SzError::<SzNotFoundError>::default()) => { /* handle */
+            }
             Err(e) if e.to_string().contains("timeout") => { /* handle timeout */ }
             Err(e) if e.to_string().contains("connection") => { /* handle connection error */ }
             // Err(err) if extract_senzing_error!(err) => {}
-            Err(err) if SzError::is_senzing_retryable_error(&err) => { /* handle */ }
-            Err(err) if SzError::is_senzing_error(&err) => { /* handle */ }
+            Err(ref err) if SzError::is_senzing_retryable_error(&**err) => { /* handle */ }
+            Err(ref err) if SzError::is_senzing_error(&**err) => { /* handle */ }
             Err(_) => {} // Err(_) => { /* handle other errors */ }
         }
     }

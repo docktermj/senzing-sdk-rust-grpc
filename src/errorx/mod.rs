@@ -390,23 +390,23 @@ impl SzError {
         }
     }
 
-    pub fn error_is(err: &Box<dyn Error>, senzing_type: impl SzErrorTrait) -> bool {
+    pub fn error_is(err: &(dyn Error + 'static), senzing_type: impl SzErrorTrait) -> bool {
         let target_type_id = senzing_type.as_any().type_id();
 
         // Check the error itself
-        if let Some(senzing_error) = extract_senzing_error!(err) {
-            if senzing_error.as_any().type_id() == target_type_id {
-                return true;
-            }
+        if let Some(senzing_error) = extract_senzing_error!(err)
+            && senzing_error.as_any().type_id() == target_type_id
+        {
+            return true;
         }
 
         // Walk the source chain
         let mut source = err.source();
         while let Some(err) = source {
-            if let Some(senzing_error) = extract_senzing_error!(err) {
-                if senzing_error.as_any().type_id() == target_type_id {
-                    return true;
-                }
+            if let Some(senzing_error) = extract_senzing_error!(err)
+                && senzing_error.as_any().type_id() == target_type_id
+            {
+                return true;
             }
             source = err.source();
         }
@@ -414,7 +414,7 @@ impl SzError {
         false
     }
 
-    pub fn is_senzing_retryable_error(err: &Box<dyn Error>) -> bool {
+    pub fn is_senzing_retryable_error(err: &(dyn Error + 'static)) -> bool {
         // Check the error itself
         if let Some(senzing_error) = extract_senzing_error!(err) {
             return senzing_error.is_retryable_error();
@@ -430,7 +430,7 @@ impl SzError {
         false
     }
 
-    pub fn is_senzing_error(err: &Box<dyn Error>) -> bool {
+    pub fn is_senzing_error(err: &(dyn Error + 'static)) -> bool {
         // Check the error itself
         if let Some(senzing_error) = extract_senzing_error!(err) {
             return senzing_error.is_senzing_error();
