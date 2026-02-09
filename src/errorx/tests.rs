@@ -1,12 +1,16 @@
+// use crate::errorx::SzErrorTrait;
 #[cfg(test)]
 use crate::errorx::{SzError, SzErrorTypes};
+use std::sync::Arc;
 
 // ----------------------------------------------------------------------------
 // Tests
 // ----------------------------------------------------------------------------
 
 mod test {
+
     use super::{get_testcase, get_testcases, mock_senzing_function};
+    use crate::errorx::tests::mock_senzing_function_returning_arc;
     use crate::errorx::{SzDatabaseError, SzError, SzErrorTypes, SzNotFoundError, is_normal};
     use crate::extract_senzing_error;
 
@@ -36,22 +40,38 @@ mod test {
     }
 
     #[test]
-    fn test_trait_display_mjd() {
+    fn test_error_as_box() {
         let testcase = get_testcase();
         let senzing_result = mock_senzing_function(testcase);
         match senzing_result {
             Ok(senzing_message) => {
                 println!("    Message: {}", senzing_message);
             }
-            // Err(ref err) if err.downcast_ref::<SzError<SzNotFoundError>>().is_some() => {}
-            Err(ref e) if SzError::error_is(&**e, SzError::<SzNotFoundError>::default()) => { /* handle */
+            Err(ref err) if SzError::is_senzing_retryable_error(err.as_ref()) => {}
+            Err(ref err)
+                if SzError::error_is(err.as_ref(), SzError::<SzNotFoundError>::default()) => {}
+            Err(ref err) if SzError::is_senzing_error(err.as_ref()) => {}
+            Err(err) if err.to_string().contains("timeout") => {}
+            Err(err) if err.to_string().contains("connection") => {}
+            Err(_) => { /* handle non-Senzing errors */ }
+        }
+    }
+
+    #[test]
+    fn test_error_as_arc() {
+        let testcase = get_testcase();
+        let senzing_result = mock_senzing_function_returning_arc(testcase);
+        match senzing_result {
+            Ok(senzing_message) => {
+                println!("    Message: {}", senzing_message);
             }
-            Err(e) if e.to_string().contains("timeout") => { /* handle timeout */ }
-            Err(e) if e.to_string().contains("connection") => { /* handle connection error */ }
-            // Err(err) if extract_senzing_error!(err) => {}
-            Err(ref err) if SzError::is_senzing_retryable_error(&**err) => { /* handle */ }
-            Err(ref err) if SzError::is_senzing_error(&**err) => { /* handle */ }
-            Err(_) => {} // Err(_) => { /* handle other errors */ }
+            Err(ref err) if SzError::is_senzing_retryable_error(err.as_ref()) => {}
+            Err(ref err)
+                if SzError::error_is(err.as_ref(), SzError::<SzNotFoundError>::default()) => {}
+            Err(ref err) if SzError::is_senzing_error(err.as_ref()) => {}
+            Err(err) if err.to_string().contains("timeout") => {}
+            Err(err) if err.to_string().contains("connection") => {}
+            Err(_) => { /* handle non-Senzing errors */ }
         }
     }
 
@@ -219,24 +239,35 @@ pub fn mock_senzing_function(testcase: TestCase) -> Result<String, Box<dyn std::
     }
 }
 
+pub fn mock_senzing_function_returning_arc(
+    testcase: TestCase,
+) -> Result<String, Arc<dyn std::error::Error>> {
+    let senzing_result = mock_senzing_function(testcase);
+    if let Err(err) = senzing_result {
+        return Err(Arc::from(err));
+    }
+    Ok("".to_string())
+}
+
 // pub fn throw_error_level_1(testcase: TestCase) -> Result<String, Box<dyn std::error::Error>> {
 //     throw_error_level_2(testcase)?;
 //     Ok("".to_string())
 // }
 
 // pub fn throw_error_level_2(testcase: TestCase) -> Result<String, Box<dyn std::error::Error>> {
-//     throw_error_level_3(testcase)?;
+//     throw_senzing_error(testcase)?;
+//     throw_non_senzing_error(testcase)?;
 //     Ok("".to_string())
 // }
 
-// pub fn throw_error_level_3(testcase: TestCase) -> Result<String, Box<dyn SzErrorTrait>> {
+// pub fn throw_senzing_error(testcase: TestCase) -> Result<String, Box<dyn SzErrorTrait>> {
 //     if let Some(error_message) = testcase.error_message {
-//         return Err(SzError::new(error_message))
+//         return Err(SzError::new(error_message));
 //     }
 //     Ok("no message".to_string())
 // }
 
-// pub fn throw_error_level_3(testcase: TestCase) -> Result<String, Box<dyn std::error::Error>> {
+// pub fn throw_non_senzing_error(testcase: TestCase) -> Result<String, Box<dyn std::error::Error>> {
 //     if let Some(error_message) = testcase.error_message {
 //         Err(SzError::new(error_message))
 //     } else if let Some(return_message) = testcase.return_message {
