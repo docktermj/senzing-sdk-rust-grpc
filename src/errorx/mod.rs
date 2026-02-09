@@ -414,29 +414,30 @@ impl SzError {
         false
     }
 
-    pub fn error_is_enum(err: &(dyn Error + 'static), senzing_type: impl SzErrorTrait) -> bool {
-        let target_type_id = senzing_type.as_any().type_id();
+    // pub fn error_is_enum(err: &(dyn Error + 'static), senzing_type: SzErrorTypes) -> bool {
+    //     let target_type_id = senzing_type.as_any().type_id();
 
-        // Check the error itself
-        if let Some(senzing_error) = extract_senzing_error!(err)
-            && senzing_error.as_any().type_id() == target_type_id
-        {
-            return true;
-        }
+    //     // Check the error itself
+    //     if let Some(senzing_error) = extract_senzing_error!(err)
+    //         && senzing_error.as_any().type_id() == target_type_id
+    //     {
+    //         match senzing_error.as_any().type_id() {}
+    //         return true;
+    //     }
 
-        // Walk the source chain
-        let mut source = err.source();
-        while let Some(err) = source {
-            if let Some(senzing_error) = extract_senzing_error!(err)
-                && senzing_error.as_any().type_id() == target_type_id
-            {
-                return true;
-            }
-            source = err.source();
-        }
+    //     // Walk the source chain
+    //     let mut source = err.source();
+    //     while let Some(err) = source {
+    //         if let Some(senzing_error) = extract_senzing_error!(err)
+    //             && senzing_error.as_any().type_id() == target_type_id
+    //         {
+    //             return true;
+    //         }
+    //         source = err.source();
+    //     }
 
-        false
-    }
+    //     false
+    // }
 
     pub fn is_senzing_retryable_error(err: &(dyn Error + 'static)) -> bool {
         // Check the error itself
@@ -767,6 +768,18 @@ fn extract_error_id_from_reason(reason: &str) -> Option<i32> {
 fn get_error_type_for_error_id(error_id: i32) -> Option<SzErrorTypes> {
     errortypes::SZ_ERROR_TYPES.get(&error_id).copied()
 }
+
+// fn match_hierarchy(needle: SzErrorTypes, haystack: SzErrorTypes) -> bool {
+//     if haystack == SzErrorTypes::Error {
+//         return true;
+//     }
+
+//     if needle == haystack {
+//         return true;
+//     }
+
+//     match needle {}
+// }
 
 /// Used to test that types have "normal" traits.
 #[allow(dead_code)]
