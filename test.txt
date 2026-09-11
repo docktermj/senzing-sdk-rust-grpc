@@ -1,0 +1,58 @@
+senzing-serve-grpc
+senzing/serve-grpc running in background.
+Sleeping to allow grpc server to come up.
+67ba71d761d8a991369977dbf95ebbcc9e452080565a4c7240a68e40ca6c5b9d
+sleep 3
+cargo test -- --nocapture
+
+running 31 tests
+>>>>>> match3: Is SzBadInputError
+>>>>>> match2: Is SzBadInputError
+>>>>>> match1: Is SzBadInputError
+test error::tests::test::test_senzing_error_types - SzConfigurationError - SzConfigurationError
+test error::tests::test::test_senzing_reasons - SzConfigurationError - SENZ0060|Unknown feature ID value '1'
+test error::tests::test::test_extract_reason_from_json_deeply_nested ... test error::tests::test::test_senzing_error_types - SzBadInputError - SzBadInputError
+ok
+test error::tests::test::test_senzing_reasons - SzBadInputError - SENZ3131|Invalid column [BAD] requested for CSV export.
+test error::tests::test::test_senzing_error_types - BadTest - SzConfigurationError
+test error::tests::test::test_extract_reason_from_json_direct ... ok
+test error::tests::test::test_senzing_reasons - BadTest - SENZ3131|Invalid column [BAD] requested for CSV export.
+test error::tests::test::test_extract_reason_from_json_nested ... ok
+test error::tests::test::test_match_senzing_error_type3 ... ok
+test error::tests::test::test_extract_reason_from_json_no_reason ... ok
+test error::tests::test::test_match_senzing_error_type2 ... ok
+test error::tests::test::test_match_senzing_error_type1 ... ok
+test error::tests::test::test_reason_from_direct_json ... ok
+test error::tests::test::test_reason_from_grpc_error_with_escaped_json ... ok
+test error::tests::test::test_reason_from_nested_json ... ok
+test error::tests::test::test_reason_json_without_reason_field ... ok
+test error::tests::test::test_reason_no_json ... ok
+test helper::transport_credentials::tests::test_transport_credentials_config_default ... ok
+test helper::transport_credentials::tests::test_transport_credentials_error_display ... ok
+test error::tests::test::test_senzing_reasons ... ok
+test error::tests::test::test_senzing_error_types ... FAILED
+test szproduct::tests::test::test_destroy ... ok
+test szabstractfactory::tests::test::test_create_product ... ok
+>>>>>> get_feature message: |status: 'Unknown error', self: "{\"function\": \"szdiagnosticserver.(*SzDiagnosticServer).GetFeature\", \"error\": {\"function\": \"szdiagnostic.(*Szdiagnostic).GetFeature\", \"error\": \n{\"id\":\"SZSDK60034004\",\"reason\":\"SENZ0057|Unknown feature ID value '1'\"}}}", metadata: {"content-type": "application/grpc"}|
+>>>>>> get_feature reason: SENZ0057|Unknown feature ID value '1'
+test szdiagnostic::tests::test::test_get_feature ... ok
+test szabstractfactory::tests::test::test_create_product_via_trait ... ok
+test szabstractfactory::tests::test::test_factory_creates_working_diagnostic ... ok
+test szdiagnostic::tests::test::test_destroy ... ok
+test szproduct::tests::test::test_get_license ... ok
+test szproduct::tests::test::test_get_version ... ok
+test szabstractfactory::tests::test::test_create_product_via_channel ... ok
+test szabstractfactory::tests::test::test_factory_creates_working_product ... ok
+test szabstractfactory::tests::test::test_factory_creates_multiple_instances ... ok
+test szdiagnostic::tests::test::test_check_repository_performance ... ok
+test szdiagnostic::tests::test::test_get_repository_info ... ok
+test szabstractfactory::tests::test::test_create_diagnostic ... ok
+test szdiagnostic::tests::test::test_purge_repository ... ok
+
+failures:
+
+failures:
+    error::tests::test::test_senzing_error_types
+
+test result: FAILED. 30 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.11s
+
